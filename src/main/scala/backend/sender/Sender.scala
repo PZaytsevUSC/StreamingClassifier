@@ -11,6 +11,7 @@ object Sender{
 
 }
 
+// Subscriber to data streams
 class Sender extends Actor{
   implicit val sys = context.system
   implicit val disp = context.dispatcher

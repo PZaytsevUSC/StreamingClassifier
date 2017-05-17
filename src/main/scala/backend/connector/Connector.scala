@@ -16,6 +16,7 @@ import backend.messages._
 //4) On transition, looks for endpoints and builds processing tcp based pipeline
 //5) When successfully connected, sends itself a message that connected
 
+// can be of several types depending on what it connects to
 object Connector {
   case class Endpoint(host: String, port: Int)
   def props(endpoints: List[Endpoint]): Props = Props(new Connector(endpoints))
