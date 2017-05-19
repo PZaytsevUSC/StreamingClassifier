@@ -1,5 +1,5 @@
 package backend.connectormanager
-import akka.actor.{Actor, IndirectActorProducer, Props, Stash}
+import akka.actor.{Actor, FSM, IndirectActorProducer, Props, Stash}
 import backend.connector.Connector
 import backend.connector.Connector.Endpoint
 /// Hierarchical structure
@@ -12,15 +12,20 @@ import backend.connector.Connector.Endpoint
 
 //// Dependency Injection
 
+sealed trait State
+sealed trait Data
 
 object ConnectorManager {
   def props_self(): Props = Props(new ConnectorManager)
   def props_connector(endpoints: List[Endpoint]): Props = Props(new Connector(endpoints))
 }
-class ConnectorManager extends Actor with Stash{
+
+// Waiting -> Add Connector -> Build pipiline -> Monitor
+class ConnectorManager extends FSM[State, Data] with Stash{
 
   implicit val sys = context.system
   implicit val disp = context.dispatcher
+  var connectors: List[Connector] = List.empty
 
   // disable consecutive calls to prestart
   override def postRestart(reason: Throwable): Unit = ()
@@ -48,5 +53,5 @@ class ConnectorManager extends Actor with Stash{
     }
   }
 
-  def receive = ???
+  // def receive = ???
 }
