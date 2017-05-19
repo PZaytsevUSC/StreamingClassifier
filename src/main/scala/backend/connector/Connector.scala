@@ -17,6 +17,11 @@ import backend.messages._
 //5) When successfully connected, sends itself a message that connected
 
 // can be of several types depending on what it connects to
+
+// should be able to use persistence module
+// in case of shutdown it should restore a state it was in
+
+
 object Connector {
   case class Endpoint(host: String, port: Int)
   def props(endpoints: List[Endpoint]): Props = Props(new Connector(endpoints))
