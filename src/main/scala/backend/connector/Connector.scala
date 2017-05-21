@@ -1,6 +1,6 @@
 package backend.connector
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorRef, Props}
 import akka.stream.scaladsl.Tcp.OutgoingConnection
 import backend.connector.Connector.Endpoint
 import backend.messages._
@@ -23,7 +23,8 @@ import backend.messages._
 
 
 object Connector {
-  case class Endpoint(host: String, port: Int)
+
+  case class Endpoint(host: String, port: Int, ref: ActorRef)
   def props(endpoints: List[Endpoint]): Props = Props(new Connector(endpoints))
 
 

@@ -14,6 +14,8 @@ import backend.connector.Connector.Endpoint
 
 //// Dependency Injection
 
+/// Firstly local implementation that clustered implementation
+
 sealed trait State
 sealed trait Data
 
