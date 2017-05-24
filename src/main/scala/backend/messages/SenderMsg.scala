@@ -12,3 +12,12 @@ object SenderMsg{
   case object Connect extends SenderToConnector
   case object TearDown extends SenderToConnector
 }
+
+trait CMMsg
+
+object CMMsg {
+
+  case class Create(host: String, port: Int) extends CMMsg
+  case object Destroy extends CMMsg
+
+}

@@ -2,6 +2,10 @@ package backend.connectormanager
 import akka.actor.{Actor, FSM, IndirectActorProducer, Props, Stash}
 import backend.connector.Connector
 import backend.connector.Connector.Endpoint
+import backend.connector.Connector.props_connector
+import backend.messages.CMMsg._
+import scala.util
+
 /// Hierarchical structure
 
 /// Should initiate some set of connectors -> monitors connectors like it's children
@@ -19,7 +23,7 @@ import backend.connector.Connector.Endpoint
 sealed trait State
 sealed trait Data
 
-case class StateData(endpoints: List[Endpoint]) extends Data
+
 case object Idle extends State
 case object CreationPending extends State
 case object Created extends State
@@ -28,9 +32,16 @@ case object Connected extends State
 case object Disconnected extends State
 
 
+case object Uninitialized extends Data
+case class Connectors(endpoints: List[Endpoint]) extends Data
+case class CountOfConnectors(count: Int) extends Data
+
+
 object ConnectorManager {
   def props_self(): Props = Props(new ConnectorManager)
-  def props_connector(endpoints: List[Endpoint]): Props = Props(new Connector(endpoints))
+  def assign_udid(): String = {
+
+  }
 }
 
 // Waiting -> Add Connector -> Build pipiline -> Monitor
@@ -38,7 +49,7 @@ class ConnectorManager extends FSM[State, Data] with Stash{
 
   implicit val sys = context.system
   implicit val disp = context.dispatcher
-  var connectors: List[Connector] = List.empty
+  var connector_counter: Int = 0
 
   // disable consecutive calls to prestart
   override def postRestart(reason: Throwable): Unit = ()
@@ -65,6 +76,19 @@ class ConnectorManager extends FSM[State, Data] with Stash{
       child => context.stop(child)
     }
   }
+
+  startWith(Idle, Uninitialized)
+
+  when(Idle) {
+    case Event(Create(host, port), Uninitialized) =>
+
+      val connectors: List[Endpoint] = List()
+      val endpoint: Endpoint = new Endpoint(host, port)
+      val connector = sys.actorOf(props_connector(endpoint), 'connector1')
+      stay using Connectors(List()), CountOfConnectors(1)
+  }
+
+
 
 
 }
