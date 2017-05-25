@@ -24,8 +24,8 @@ import backend.messages._
 
 object Connector {
 
-  case class Endpoint(host: String, port: Int, ref: ActorRef)
-  def props(endpoints: List[Endpoint]): Props = Props(new Connector(endpoints))
+  case class Endpoint(host: String, port: Int)
+  def props_connector(endpoint: Endpoint): Props = Props(new Connector(endpoint))
 
 
   object Messages {
@@ -38,7 +38,7 @@ object Connector {
   }
 }
 
-class Connector(endpoints: List[Endpoint]) extends Actor {
+class Connector(endpoint: Endpoint) extends Actor {
 
   // sys it belongs to
   implicit val sys = context.system

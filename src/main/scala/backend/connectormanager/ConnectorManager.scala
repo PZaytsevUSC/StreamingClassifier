@@ -1,7 +1,16 @@
 package backend.connectormanager
-import akka.actor.{Actor, FSM, IndirectActorProducer, Props, Stash}
+import akka.actor.{Actor, ActorRef, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
+import akka.pattern.ask
 import backend.connector.Connector
 import backend.connector.Connector.Endpoint
+import backend.connector.Connector.props_connector
+import backend.messages.CMMsg._
+import language.postfixOps
+import akka.stream.scaladsl.Tcp
+import akka.stream.scaladsl.Tcp.OutgoingConnection
+
+import scala.util
+import scala.collection.mutable.ListBuffer
 /// Hierarchical structure
 
 /// Should initiate some set of connectors -> monitors connectors like it's children
@@ -10,35 +19,34 @@ import backend.connector.Connector.Endpoint
 
 /// Should know the failures and how to handle
 
-/// Should use FSM module
 
 //// Dependency Injection
 
 /// Firstly local implementation that clustered implementation
 
-sealed trait State
-sealed trait Data
-
-case class StateData(endpoints: List[Endpoint]) extends Data
-case object Idle extends State
-case object CreationPending extends State
-case object Created extends State
-case object ConnectionPending extends State
-case object Connected extends State
-case object Disconnected extends State
+object CMMCommands {
+  sealed trait CMMCommand
+  case class ConnectTo(ref: ActorRef) extends CMMCommand
+  case class SuccessfullyConnected(connection: OutgoingConnection) extends CMMCommand
+  case object ConnectionFailed extends CMMCommand
+}
 
 
 object ConnectorManager {
   def props_self(): Props = Props(new ConnectorManager)
-  def props_connector(endpoints: List[Endpoint]): Props = Props(new Connector(endpoints))
 }
 
 // Waiting -> Add Connector -> Build pipiline -> Monitor
-class ConnectorManager extends FSM[State, Data] with Stash{
+class ConnectorManager extends Actor with Stash{
 
+  import CMMCommands._
+  import context._
   implicit val sys = context.system
   implicit val disp = context.dispatcher
-  var connectors: List[Connector] = List.empty
+
+  var connector_counter: Int = 0
+
+  var connectors: ListBuffer[ActorRef] = new ListBuffer[ActorRef]()
 
   // disable consecutive calls to prestart
   override def postRestart(reason: Throwable): Unit = ()
@@ -65,6 +73,55 @@ class ConnectorManager extends FSM[State, Data] with Stash{
       child => context.stop(child)
     }
   }
+
+
+  def receive: Receive = {
+    case Initialize => become(connector_creator)
+    case Destroy => context.stop(self)
+  }
+
+  def connector_handler: Receive = {
+    case ConnectTo(connector) => {
+
+      /// TCP logic should be here
+
+    // self ! SuccessfullyConnected(c)
+    // self ! ConnectionFailed
+    }
+
+    case SuccessfullyConnected(connection: OutgoingConnection) => {
+      ///
+    }
+
+    case ConnectionFailed => {
+
+    }
+  }
+
+  def connector_creator: Receive = {
+    case Create(host, port) => {
+      val endpoint: Endpoint = new Endpoint(host, port)
+      val connector = sys.actorOf(props_connector(endpoint), "connector" + connector_counter)
+      connector_counter += 1
+      connectors += connector
+      self ! ConnectTo(connector)
+      become(connector_handler)
+      // self ! ConnectTo(connector)
+    }
+
+
+
+    case DestroyConnector(ref: ActorRef) => {
+      val connector: ActorRef = connectors.find(x => x == ref).get
+      connector ! PoisonPill
+    }
+  }
+
+
+
+
+
+
 
 
 }
