@@ -43,6 +43,7 @@ class ConnectorManager extends Actor with Stash{
   import context._
   implicit val sys = context.system
   implicit val disp = context.dispatcher
+  implicit val log = Logging(sys, this)
 
   var connector_counter: Int = 0
 
