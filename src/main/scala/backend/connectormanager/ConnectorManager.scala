@@ -1,10 +1,12 @@
 package backend.connectormanager
 import akka.actor.{Actor, ActorRef, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
+import akka.event.Logging
 import akka.pattern.ask
 import backend.connector.Connector
 import backend.connector.Connector.Endpoint
 import backend.connector.Connector.props_connector
 import backend.messages.CMMsg._
+
 import language.postfixOps
 import akka.stream.scaladsl.Tcp
 import akka.stream.scaladsl.Tcp.OutgoingConnection
