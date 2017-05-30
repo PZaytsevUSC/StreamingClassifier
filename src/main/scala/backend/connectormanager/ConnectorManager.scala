@@ -21,8 +21,7 @@ import scala.collection.mutable.ListBuffer
 
 /// Should know the failures and how to handle
 
-
-//// Dependency Injection
+/// If it has conenctors of one particular type, it should use routing to load balance
 
 /// Firstly local implementation that clustered implementation
 
