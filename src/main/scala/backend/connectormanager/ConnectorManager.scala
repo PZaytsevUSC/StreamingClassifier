@@ -1,10 +1,12 @@
 package backend.connectormanager
 import akka.actor.{Actor, ActorRef, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
+import akka.event.Logging
 import akka.pattern.ask
 import backend.connector.Connector
 import backend.connector.Connector.Endpoint
 import backend.connector.Connector.props_connector
 import backend.messages.CMMsg._
+
 import language.postfixOps
 import akka.stream.scaladsl.Tcp
 import akka.stream.scaladsl.Tcp.OutgoingConnection
@@ -57,6 +59,10 @@ class ConnectorManager extends Actor with Stash{
     postStop()
   }
 
+  def suicide() = {
+    context.stop(self)
+  }
+
   def start_watching_connectors() = {
     context.children foreach {
       child => context.watch(child)
@@ -102,7 +108,7 @@ class ConnectorManager extends Actor with Stash{
   def connector_creator: Receive = {
     case Create(host, port) => {
       val endpoint: Endpoint = new Endpoint(host, port)
-      val connector = sys.actorOf(props_connector(endpoint), "connector" + connector_counter)
+      val connector = context.actorOf(props_connector(endpoint), "connector" + connector_counter)
       connector_counter += 1
       connectors += connector
       self ! ConnectTo(connector)
