@@ -9,8 +9,11 @@ import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
   */
 class TestConnectorManager extends TestKit(ActorSystem("test_system")) with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll{
 
-override  def afterAll: Unit = {
-  TestKit.shutdownActorSystem(system)
-}
+  override  def afterAll: Unit = {
+    TestKit.shutdownActorSystem(system)
+  }
+
+
+
 
 }
