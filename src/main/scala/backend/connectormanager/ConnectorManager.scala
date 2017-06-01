@@ -1,5 +1,7 @@
 package backend.connectormanager
-import akka.actor.{Actor, ActorRef, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
+
+import akka.actor.{Actor, ActorLogging, ActorRef, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
+
 import akka.event.Logging
 import akka.pattern.ask
 import backend.connector.Connector
@@ -39,13 +41,13 @@ object ConnectorManager {
 }
 
 // Waiting -> Add Connector -> Build pipiline -> Monitor
-class ConnectorManager extends Actor with Stash{
+class ConnectorManager extends Actor with Stash with ActorLogging{
 
   import CMMCommands._
   import context._
   implicit val sys = context.system
   implicit val disp = context.dispatcher
-  implicit val log = Logging(sys, this)
+  implicit val logger = Logging(sys, this)
 
   var connector_counter: Int = 0
 
@@ -106,7 +108,7 @@ class ConnectorManager extends Actor with Stash{
   }
 
   def connector_creator: Receive = {
-    case Create(host, port) => {
+    case Create(requestId, host, port) => {
       val endpoint: Endpoint = new Endpoint(host, port)
       val connector = context.actorOf(props_connector(endpoint), "connector" + connector_counter)
       connector_counter += 1
@@ -118,7 +120,7 @@ class ConnectorManager extends Actor with Stash{
 
 
 
-    case DestroyConnector(ref: ActorRef) => {
+    case DestroyConnector(requestId, ref: ActorRef) => {
       val connector: ActorRef = connectors.find(x => x == ref).get
       connector ! PoisonPill
     }
