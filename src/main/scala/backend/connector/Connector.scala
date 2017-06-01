@@ -43,5 +43,5 @@ class Connector(endpoint: Endpoint) extends Actor {
   // sys it belongs to
   implicit val sys = context.system
   implicit val disp = context.dispatcher
-  def receive = ???
+  def receive = Actor.emptyBehavior
 }

@@ -1,5 +1,5 @@
 package backend.connectormanager
-import akka.actor.{Actor, ActorRef, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
+import akka.actor.{Actor, ActorLogging, ActorRef, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
 import akka.event.Logging
 import akka.pattern.ask
 import backend.connector.Connector
@@ -29,6 +29,7 @@ import scala.collection.mutable.ListBuffer
 object CMMCommands {
   sealed trait CMMCommand
   case class ConnectTo(ref: ActorRef) extends CMMCommand
+  case class ConnectorAdded(connector: String) extends CMMCommand
   case class SuccessfullyConnected(connection: OutgoingConnection) extends CMMCommand
   case object ConnectionFailed extends CMMCommand
 }
@@ -39,17 +40,19 @@ object ConnectorManager {
 }
 
 // Waiting -> Add Connector -> Build pipiline -> Monitor
-class ConnectorManager extends Actor with Stash{
+class ConnectorManager extends Actor with Stash with ActorLogging{
 
   import CMMCommands._
   import context._
   implicit val sys = context.system
   implicit val disp = context.dispatcher
-  implicit val log = Logging(sys, this)
 
   var connector_counter: Int = 0
 
   var connectors: ListBuffer[ActorRef] = new ListBuffer[ActorRef]()
+
+  override def preStart(): Unit = log.info("ConnectorManager is up")
+  override def postStop(): Unit = log.info("ConnectorManager is down")
 
   // disable consecutive calls to prestart
   override def postRestart(reason: Throwable): Unit = ()
@@ -83,8 +86,9 @@ class ConnectorManager extends Actor with Stash{
 
 
   def receive: Receive = {
-    case Initialize => become(connector_creator)
+    case Initialize => sender() ! "Initialized"; become(connector_creator)
     case Destroy => context.stop(self)
+    case _ => sender() ! "Non Initialized"
   }
 
   def connector_handler: Receive = {
@@ -108,11 +112,14 @@ class ConnectorManager extends Actor with Stash{
   def connector_creator: Receive = {
     case Create(host, port) => {
       val endpoint: Endpoint = new Endpoint(host, port)
-      val connector = context.actorOf(props_connector(endpoint), "connector" + connector_counter)
+      val name = "connector" + connector_counter
+      val connector = context.actorOf(props_connector(endpoint), name)
       connector_counter += 1
       connectors += connector
-      self ! ConnectTo(connector)
-      become(connector_handler)
+      sender () ! ConnectorAdded(name)
+      // should be handled from outside
+//      self ! ConnectTo(connector)
+//      become(connector_handler)
       // self ! ConnectTo(connector)
     }
 
