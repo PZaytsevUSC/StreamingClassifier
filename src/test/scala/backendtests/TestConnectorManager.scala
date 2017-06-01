@@ -1,11 +1,13 @@
 package backendtests
 
 import akka.actor.ActorSystem
+
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import backend.connectormanager.ConnectorManager.props_self
 import backend.connectormanager.CMMCommands.ConnectorAdded
 import backend.messages.CMMsg.{Initialize, Create}
+
 /**
   * Created by pzaytsev on 5/30/17.
   */
@@ -14,6 +16,7 @@ class TestConnectorManager extends TestKit(ActorSystem("test_system")) with Impl
   override  def afterAll: Unit = {
     TestKit.shutdownActorSystem(system)
   }
+
 
   "A ConnectorManager actor" must {
     "Respond with non-initialized when in non-initialzed state" in {

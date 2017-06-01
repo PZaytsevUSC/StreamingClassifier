@@ -1,5 +1,7 @@
 package backend.connectormanager
+
 import akka.actor.{Actor, ActorLogging, ActorRef, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
+
 import akka.event.Logging
 import akka.pattern.ask
 import backend.connector.Connector
@@ -46,7 +48,6 @@ class ConnectorManager extends Actor with Stash with ActorLogging{
   import context._
   implicit val sys = context.system
   implicit val disp = context.dispatcher
-
   var connector_counter: Int = 0
 
   var connectors: ListBuffer[ActorRef] = new ListBuffer[ActorRef]()
@@ -110,10 +111,12 @@ class ConnectorManager extends Actor with Stash with ActorLogging{
   }
 
   def connector_creator: Receive = {
-    case Create(host, port) => {
+    case Create(requestId, host, port) => {
       val endpoint: Endpoint = new Endpoint(host, port)
+
       val name = "connector" + connector_counter
       val connector = context.actorOf(props_connector(endpoint), name)
+
       connector_counter += 1
       connectors += connector
       sender () ! ConnectorAdded(name)
@@ -125,7 +128,7 @@ class ConnectorManager extends Actor with Stash with ActorLogging{
 
 
 
-    case DestroyConnector(ref: ActorRef) => {
+    case DestroyConnector(requestId, ref: ActorRef) => {
       val connector: ActorRef = connectors.find(x => x == ref).get
       connector ! PoisonPill
     }
