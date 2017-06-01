@@ -4,6 +4,10 @@
 
 ![alt text](http://funkyimg.com/i/2tkyv.png "SC Architecture")
 
+### Supervision Hierarchy:
+
+![alt text](http://funkyimg.com/i/2tMPt.png "SC Supervision")
+
 ### Sketch:
 
 I. User wants to be able to automatically classify streaming data. Based on a category of a certain data point, user wants to redirect this datapoint to a certain place. Certain DB table or file. The resulting datapoint is original schema + class defined from the model. 
