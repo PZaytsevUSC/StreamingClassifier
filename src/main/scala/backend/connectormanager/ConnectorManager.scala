@@ -112,7 +112,7 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
 
     case streamReq @ StreamRequestStart(`cmId`, _) => {
       connectors.get(streamReq.connectorId) match {
-        case Some(connector) => connector forward StreamRequestStart
+        case Some(connector) => connector forward streamReq
         case None =>
           log.info("Creating a connector for {}", streamReq.connectorId)
           val connector = context.actorOf(props_connector(streamReq.cmId, streamReq.connectorId, None))
