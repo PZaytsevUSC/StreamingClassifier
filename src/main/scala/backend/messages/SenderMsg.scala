@@ -27,3 +27,11 @@ object CMMsg {
   case object Initialize extends CMMsg
 
 }
+
+trait ConnectorMsg
+
+object ConnectorMsg {
+
+  case class StreamRequestStart(cmId: String, connectorId: String) extends ConnectorMsg
+  case object ConnectorRegistered extends ConnectorMsg
+}
