@@ -21,7 +21,7 @@ class TestConnectorManager extends TestKit(ActorSystem("test_system")) with Impl
   "A ConnectorManager actor" must {
     "Respond with non-initialized when in non-initialzed state" in {
       val probe = TestProbe()
-      val cm = system.actorOf(props_self())
+      val cm = system.actorOf(props_self("1"))
       cm.tell("Some random message", probe.ref)
       val msg = probe.expectMsg("Non Initialized")
       msg should be ("Non Initialized")
@@ -29,7 +29,7 @@ class TestConnectorManager extends TestKit(ActorSystem("test_system")) with Impl
 
     "Move to initialized state when initialized" in {
       val probe = TestProbe()
-      val cm = system.actorOf(props_self())
+      val cm = system.actorOf(props_self("1"))
       cm.tell(Initialize, probe.ref)
       val msg = probe.expectMsg("Initialized")
       msg should be ("Initialized")
