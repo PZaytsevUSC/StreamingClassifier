@@ -1,5 +1,7 @@
 # StreamingClassifier
 
+[![Build Status](https://travis-ci.org/PZaytsevUSC/StreamingClassifier.svg?branch=master)](https://travis-ci.org/PZaytsevUSC/StreamingClassifier)
+
 ### Architecture:
 
 ![alt text](http://funkyimg.com/i/2tkyv.png "SC Architecture")
