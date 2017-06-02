@@ -35,18 +35,6 @@ class TestConnectorManager extends TestKit(ActorSystem("test_system")) with Impl
       msg should be ("Initialized")
     }
 
-    "Create a connector actor when sent a Create_Connector message" in {
-      val probe = TestProbe()
-      val cm = system.actorOf(props_self())
-      cm.tell(Initialize, probe.ref)
-      val msg_initialzed = probe.expectMsgType[String]
-      msg_initialzed should be ("Initialized")
-      cm.tell(Create("localhost", 9999), probe.ref)
-      val msg = probe.expectMsgType[ConnectorAdded]
-      msg.connector should === ("connector0")
-
-
-    }
   }
 
 

@@ -114,8 +114,9 @@ class ConnectorManager extends Actor with Stash with ActorLogging{
     case Create(requestId, host, port) => {
       val endpoint: Endpoint = new Endpoint(host, port)
 
+      // for cases where there's more than one connector manager this is not an id anymore, change it
       val name = "connector" + connector_counter
-      val connector = context.actorOf(props_connector(endpoint), name)
+      val connector = context.actorOf(props_connector("placeholder", "placeholder", Some(endpoint)), name)
 
       connector_counter += 1
       connectors += connector
