@@ -4,7 +4,6 @@ import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import backend.connector.Connector.props_connector
-import backend.connectormanager.CMMCommands.ConnectorAdded
 import backend.messages.ConnectorMsg.{ConnectorRegistered, StreamRequestStart}
 /**
   * Created by pzaytsev on 6/1/17.
