@@ -49,6 +49,7 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
   implicit val disp = context.dispatcher
   var connector_counter: Int = 0
   var connectors: Map[String, ActorRef] = Map.empty[String, ActorRef]
+  var connectors_backward: Map[ActorRef, String] = Map.empty[ActorRef, String]
 
   override def preStart(): Unit = log.info("ConnectorManager {} is up", cmId)
   override def postStop(): Unit = log.info("ConnectorManager {} is down", cmId)
@@ -116,7 +117,9 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
         case None =>
           log.info("Creating a connector for {}", streamReq.connectorId)
           val connector = context.actorOf(props_connector(streamReq.cmId, streamReq.connectorId, None))
+          context.watch(connector)
           connectors += streamReq.connectorId -> connector
+          connectors_backward += connector -> streamReq.connectorId
           connector_counter = connectors.size
           connector forward streamReq
       }
@@ -125,12 +128,6 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
     case StreamRequestStart(cmId, connectorId) =>
       log.warning("Ignoring request for {}. Connector is responsible for {}", cmId, this.cmId)
 
-
-
-//    case DestroyConnector(requestId, ref: ActorRef) => {
-//      val connector: ActorRef = connectors.find(x => x == ref).get
-//      connector ! PoisonPill
-//    }
   }
 
 
