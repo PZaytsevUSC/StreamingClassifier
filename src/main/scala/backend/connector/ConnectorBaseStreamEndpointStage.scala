@@ -43,6 +43,8 @@ object Helpers {
       x => sinks += x -> datasink(x + ".txt")
     }
 
+    // can be partial graphs
+    // should be an api for partial graph shapes adaptation
     val graph: RunnableGraph[NotUsed] = RunnableGraph.fromGraph(GraphDSL.create() { implicit b =>
       import GraphDSL.Implicits._
       val bcast = b.add(Broadcast[String](num_of_categories + 1))
@@ -55,6 +57,19 @@ object Helpers {
     })
 
     graph
+  }
+
+
+  // using run once in the morning and once in the evening you can materialize stats
+  // within some time frame
+  def summing_graph(source: Source[String, Future[IOResult]]): RunnableGraph[Future[Int]] = {
+    val count_transofmer: Flow[String, Int, NotUsed] = Flow[String].map(_ => 1)
+
+    val sum_sunk: Sink[Int, Future[Int]] = Sink.fold[Int, Int](0)(_ + _)
+
+    val counter_graph: RunnableGraph[Future[Int]] = datasource_framed("file2.txt").via(count_transofmer).toMat(sum_sunk)(Keep.right)
+
+    counter_graph
   }
 
 }
@@ -73,9 +88,12 @@ abstract class ConnectorBaseStreamEndpointStage[T] extends GraphStage[SourceShap
 
 
 object Playground extends App {
+  import Helpers.datasource_framed
   implicit val system = ActorSystem("QuickStart")
   implicit val ec = system.dispatcher
   implicit val materializer = ActorMaterializer()
+
+
 
 
 
