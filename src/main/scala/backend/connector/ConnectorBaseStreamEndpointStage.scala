@@ -3,14 +3,14 @@ package backend.connector
 import java.nio.file.{Path, Paths}
 
 import akka.{Done, NotUsed}
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Cancellable}
 import akka.stream._
-import akka.stream.scaladsl.{Broadcast, FileIO, Flow, Framing, GraphDSL, Keep, RunnableGraph, Sink, Source}
+import akka.stream.scaladsl.{Broadcast, FileIO, Flow, Framing, GraphDSL, Keep, Merge, RunnableGraph, Sink, Source, ZipWith}
 import akka.stream.stage.{GraphStage, GraphStageLogic}
 import akka.util.ByteString
 
 import scala.concurrent.duration._
-import scala.concurrent.Future
+import scala.concurrent.{Future, Promise}
 import scala.util.Random
 
 /**
@@ -85,7 +85,8 @@ abstract class ConnectorBaseStreamEndpointStage[T] extends GraphStage[SourceShap
 }
 
 
-
+// only one subscriber -> use fan out to subscribe each subscriber
+// part of graphs can be materialized by one actor and run by another actor
 
 object Playground extends App {
   import Helpers.datasource_framed
@@ -93,8 +94,15 @@ object Playground extends App {
   implicit val ec = system.dispatcher
   implicit val materializer = ActorMaterializer()
 
+  val pickMaxOfThree = GraphDSL.create() { implicit b =>
+    import GraphDSL.Implicits._
 
+    val zip1 = b.add(ZipWith[Int, Int, Int](math.max _))
+    val zip2 = b.add(ZipWith[Int, Int, Int](math.max _))
+    zip1.out ~> zip2.in0
 
+    UniformFanInShape(zip2.out, zip1.in0, zip1.in1, zip2.in1)
+  }
 
 
 }
