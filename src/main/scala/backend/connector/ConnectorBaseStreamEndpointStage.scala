@@ -4,8 +4,9 @@ import java.nio.file.{Path, Paths}
 
 import akka.{Done, NotUsed}
 import akka.actor.{ActorSystem, Cancellable}
+import akka.stream.FanInShape.Init
 import akka.stream._
-import akka.stream.scaladsl.{Broadcast, FileIO, Flow, Framing, GraphDSL, Keep, Merge, RunnableGraph, Sink, Source, ZipWith}
+import akka.stream.scaladsl.{Balance, Broadcast, FileIO, Flow, Framing, GraphDSL, Keep, Merge, MergePreferred, RunnableGraph, Sink, Source, Zip, ZipWith}
 import akka.stream.stage.{GraphStage, GraphStageLogic}
 import akka.util.ByteString
 
@@ -16,6 +17,12 @@ import scala.util.Random
 /**
   * Created by pzaytsev on 6/2/17.
   */
+
+// a good shape to use would be the one that separates good streaming data from bad
+
+// also a shape that prioritizes one class over the other
+
+
 
 object Helpers {
 
@@ -89,20 +96,14 @@ abstract class ConnectorBaseStreamEndpointStage[T] extends GraphStage[SourceShap
 // part of graphs can be materialized by one actor and run by another actor
 
 object Playground extends App {
+
   import Helpers.datasource_framed
+
   implicit val system = ActorSystem("QuickStart")
   implicit val ec = system.dispatcher
   implicit val materializer = ActorMaterializer()
 
-  val pickMaxOfThree = GraphDSL.create() { implicit b =>
-    import GraphDSL.Implicits._
-
-    val zip1 = b.add(ZipWith[Int, Int, Int](math.max _))
-    val zip2 = b.add(ZipWith[Int, Int, Int](math.max _))
-    zip1.out ~> zip2.in0
-
-    UniformFanInShape(zip2.out, zip1.in0, zip1.in1, zip2.in1)
-  }
+  val d = List(1, 2, 3)
 
 
 }
