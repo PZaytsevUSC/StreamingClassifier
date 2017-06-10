@@ -105,5 +105,6 @@ object Playground extends App {
 
   val d = List(1, 2, 3)
 
+  // Materialized stream is local to the JVM
 
 }
