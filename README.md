@@ -26,6 +26,8 @@ VI. It’s important to address all the streaming issues that might arise (fast 
 
 VII. User actions should be performed from a pretty one page UI. Several clients should be able to connect at the same time. The UI should support an active web socket connections, rudimentary analytics, user logging and all the goodies.
 
+VIII: Connect three closed graph shapes via their materialzed values (OutgoingConnection)
+
 ### Advanced:
 
 Besides a subscription streaming, there should be an ability for streaming queries. Options: Apache Calcite, Spark DataFrames. 
