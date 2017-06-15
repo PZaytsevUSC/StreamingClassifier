@@ -44,6 +44,16 @@ class Connector(cmId: String, connectorId: String, endpoint: Option[Endpoint]) e
   implicit val sys = context.system
   implicit val disp = context.dispatcher
 
+  // should filter on datatype and return boolean
+  // var filters: List[PartialFunction[Int, Boolean]] = ???
+  // should be a schema expected against which to verify and for which to classify
+  // var current_schema = ???
+  // a list of models to choose a streaming classification for
+  // it should consume a datashape and output a new datashape + a new classification
+  // var models: Map[String, PartialFunction[String, String]] = ???
+  // should affect the ingestion stage of a streaming logic. Cassandra -> Cassandra type ingestion, AMQP -> AMQP type, etc
+  // val source_type = ???
+
   def receive: Receive = {
 
     case StreamRequestStart(`cmId`, `connectorId`) =>
