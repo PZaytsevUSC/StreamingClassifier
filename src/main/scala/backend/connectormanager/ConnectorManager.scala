@@ -11,7 +11,8 @@ import backend.messages.CMMsg._
 import language.postfixOps
 import akka.stream.scaladsl.Tcp
 import akka.stream.scaladsl.Tcp.OutgoingConnection
-import backend.messages.ConnectorMsg.StreamRequestStart
+import backend.messages.ConnectorMsg.{SaveSchema, StreamRequestStart}
+import backend.schema.Schema
 
 import scala.util
 import scala.collection.mutable.ListBuffer
@@ -33,6 +34,8 @@ object CMMCommands {
   case class ConnectTo(ref: ActorRef) extends CMMCommand
   case class SuccessfullyConnected(connection: OutgoingConnection) extends CMMCommand
   case object ConnectionFailed extends CMMCommand
+  case object ConnectorDoesNotExist extends CMMCommand
+  case object SchemaInitialized extends CMMCommand
 }
 
 
@@ -47,10 +50,10 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
   import context._
   implicit val sys = context.system
   implicit val disp = context.dispatcher
-  var connector_counter: Int = 0
-  var connectors: Map[String, ActorRef] = Map.empty[String, ActorRef]
-  var connectors_backward: Map[ActorRef, String] = Map.empty[ActorRef, String]
-
+  private var connector_counter: Int = 0
+  private var schemas: Map[Long, Schema] = Map.empty[Long, Schema]
+  private var connectors: Map[String, ActorRef] = Map.empty[String, ActorRef]
+  private var connectors_backward: Map[ActorRef, String] = Map.empty[ActorRef, String]
   override def preStart(): Unit = log.info("ConnectorManager {} is up", cmId)
   override def postStop(): Unit = log.info("ConnectorManager {} is down", cmId)
 
@@ -124,17 +127,29 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
           connector forward streamReq
       }
     }
+    case saveSchema @ SaveSchema(_, _, `cmId`, _) => {
+      saveSchema.connectorId match {
+        case Some(id) => connectors.get(id) match {
+          case Some(connector) =>
+            log.info("Saving schema {} and forwarding it to {}", saveSchema.schema_id, saveSchema.connectorId)
+            schemas += saveSchema.schema_id -> saveSchema
+            connector forward saveSchema
+          case None =>
+            log.info("The requested connector {} does not exist", saveSchema.connectorId)
+            sender() ! ConnectorDoesNotExist
+        }
+        case None => {
+          log.info("Saving schema for the connectorManager {}", cmId)
+          schemas += saveSchema.schema_id -> saveSchema
+        }
+
+      }
+    }
 
     case StreamRequestStart(cmId, connectorId) =>
       log.warning("Ignoring request for {}. Connector is responsible for {}", cmId, this.cmId)
-
+    case SaveSchema(_, _, cmId, _) =>
+      log.warning("Ignoring request for {}. Connector is responsible for {}", cmId, this.cmId)
   }
-
-
-
-
-
-
-
 
 }
