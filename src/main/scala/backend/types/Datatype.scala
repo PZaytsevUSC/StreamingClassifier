@@ -39,9 +39,9 @@ object IntType extends IntType
 class FloatType private() extends DataType {
   private[types] type InternalType = Float
   override def defaultSize: Int = 4
-  private[sql] val numeric = implicitly[Numeric[Float]]
-  private[sql] val fractional = implicitly[Fractional[Float]]
-  private[sql] val ordering = implicitly[Ordering[InternalType]]
+  private[types] val numeric = implicitly[Numeric[Float]]
+  private[types] val fractional = implicitly[Fractional[Float]]
+  private[types] val ordering = implicitly[Ordering[InternalType]]
 
 }
 

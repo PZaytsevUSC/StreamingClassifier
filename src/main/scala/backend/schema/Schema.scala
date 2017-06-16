@@ -26,11 +26,12 @@ case class Schema(fields: Array[StructField]) extends DataType with Seq[StructFi
 
   override def iterator: Iterator[StructField] = fields.iterator
   override  def length: Int = fields.length
+  override def apply(idx: Int): StructField = fields(idx)
 
   override def defaultSize: Int = {
     if(fields.isEmpty) 0
     else {
-      fields.reduce((x, y) => x.dataType.defaultSize + y.dataType.defaultSize)
+      fields.map(x => x.dataType.defaultSize).reduce((x, y) => x + y)
     }
   }
 
@@ -43,6 +44,7 @@ case class Schema(fields: Array[StructField]) extends DataType with Seq[StructFi
     }
   }
 
-  def ==(that: Any): Boolean = equals(that)
+  private lazy val _hashCode: Int = java.util.Arrays.hashCode(fields.asInstanceOf[Array[AnyRef]])
+  override def hashCode(): Int = _hashCode
 
 }
