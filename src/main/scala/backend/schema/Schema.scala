@@ -4,7 +4,7 @@ package backend.schema
   * Created by pzaytsev on 6/5/17.
   */
 
-import backend.types.{DataType, StringType}
+import backend.types.{DataType, FloatType, IntType, StringType}
 
 sealed trait Struct
 
@@ -47,4 +47,11 @@ case class Schema(fields: Array[StructField]) extends DataType with Seq[StructFi
   private lazy val _hashCode: Int = java.util.Arrays.hashCode(fields.asInstanceOf[Array[AnyRef]])
   override def hashCode(): Int = _hashCode
 
+  def add(set: Array[StructField]): Schema = {
+    Schema(fields ++ set)
+  }
+
+  def add(field: StructField): Schema = {
+    Schema(fields :+ field)
+  }
 }
