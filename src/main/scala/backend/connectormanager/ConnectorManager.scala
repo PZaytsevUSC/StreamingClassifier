@@ -132,7 +132,7 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
         case Some(id) => connectors.get(id) match {
           case Some(connector) =>
             log.info("Saving schema {} and forwarding it to {}", saveSchema.schema_id, saveSchema.connectorId)
-            schemas += saveSchema.schema_id -> saveSchema
+            schemas += saveSchema.schema_id -> saveSchema.schema
             connector forward saveSchema
           case None =>
             log.info("The requested connector {} does not exist", saveSchema.connectorId)
@@ -140,7 +140,7 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
         }
         case None => {
           log.info("Saving schema for the connectorManager {}", cmId)
-          schemas += saveSchema.schema_id -> saveSchema
+          schemas += saveSchema.schema_id -> saveSchema.schema
         }
 
       }

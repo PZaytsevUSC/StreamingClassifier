@@ -59,8 +59,6 @@ class Connector(cmId: String, connectorId: String, endpoint: Option[Endpoint]) e
     case StreamRequestStart(`cmId`, `connectorId`) =>
       sender() ! ConnectorRegistered
 
-    case
-
     case StreamRequestStart(cmId, connectorId) =>
       log.warning("Ignoring request for {} {}. Connector is responsible for {} {}", cmId, connectorId, this.cmId, this.connectorId)
 
