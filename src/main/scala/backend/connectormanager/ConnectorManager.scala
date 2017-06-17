@@ -36,6 +36,7 @@ object CMMCommands {
   case object ConnectionFailed extends CMMCommand
   case object ConnectorDoesNotExist extends CMMCommand
   case object SchemaInitialized extends CMMCommand
+  case object SchemaSaved extends CMMCommand
 }
 
 
@@ -141,6 +142,7 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
         case None => {
           log.info("Saving schema for the connectorManager {}", cmId)
           schemas += saveSchema.schema_id -> saveSchema.schema
+          sender() ! SchemaSaved
         }
 
       }

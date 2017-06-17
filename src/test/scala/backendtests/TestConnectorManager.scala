@@ -3,10 +3,13 @@ package backendtests
 import scala.concurrent.duration._
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import backend.connectormanager.CMMCommands.{ConnectorDoesNotExist, SchemaSaved}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import backend.connectormanager.ConnectorManager.props_self
-import backend.messages.CMMsg.{Initialize}
-import backend.messages.ConnectorMsg.{ConnectorRegistered, StreamRequestStart}
+import backend.messages.CMMsg.Initialize
+import backend.messages.ConnectorMsg.{ConnectorRegistered, SaveSchema, StreamRequestStart}
+import backend.schema.{Schema, StructField}
+import backend.types.{FloatType, IntType, StringType}
 
 /**
   * Created by pzaytsev on 5/30/17.
@@ -76,11 +79,55 @@ class TestConnectorManager extends TestKit(ActorSystem("test_system")) with Impl
 
       cm.tell(StreamRequestStart("1", "connector1"), probe.ref)
       probe.expectMsg(ConnectorRegistered)
-//      val connector2 = probe.lastSender
-//
-//      connector1 should === (connector2)
+    }
+
+    "Save schema if ConnectorId is not provided" in {
+      val probe = TestProbe()
+      val cm = system.actorOf(props_self("1"))
+      cm.tell(Initialize, probe.ref)
+      probe.expectMsg("Initialized")
+
+      val schema = Schema(Array(
+        StructField("name", StringType, false),
+        StructField("age", IntType, false),
+        StructField("salary", FloatType, false)))
+
+      cm.tell(SaveSchema(123, schema, "1", None), probe.ref)
+      probe.expectMsg(SchemaSaved)
+    }
+
+    "Save schema and forward the schema to a connector if ConnectorId is provided" in {
+      val probe = TestProbe()
+      val cm = system.actorOf(props_self("1"))
+      cm.tell(Initialize, probe.ref)
+      probe.expectMsg("Initialized")
+
+      val schema = Schema(Array(
+        StructField("name", StringType, false),
+        StructField("age", IntType, false),
+        StructField("salary", FloatType, false)))
+
+      cm.tell(StreamRequestStart("1", "connector1"), probe.ref)
+      probe.expectMsg(ConnectorRegistered)
+      cm.tell(SaveSchema(123, schema, "1", Some("connector1")), probe.ref)
+      probe.expectMsg(SchemaSaved)
+    }
+
+    "Report that connectorId does not exist if ConnectorId is not found" in {
+      val probe = TestProbe()
+      val cm = system.actorOf(props_self("1"))
+      cm.tell(Initialize, probe.ref)
+      probe.expectMsg("Initialized")
+      val schema = Schema(Array(
+        StructField("name", StringType, false),
+        StructField("age", IntType, false),
+        StructField("salary", FloatType, false)))
+      cm.tell(SaveSchema(123, schema, "1", Some("connector1")), probe.ref)
+      probe.expectMsg(ConnectorDoesNotExist)
 
     }
+
+
 
   }
 

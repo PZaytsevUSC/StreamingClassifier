@@ -3,8 +3,10 @@ package backend.connector
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.stream.scaladsl.Tcp.OutgoingConnection
 import backend.connector.Connector.Endpoint
-import backend.messages.ConnectorMsg.{ConnectorRegistered, StreamRequestStart}
+import backend.connectormanager.CMMCommands.SchemaSaved
+import backend.messages.ConnectorMsg.{ConnectorRegistered, SaveSchema, StreamRequestStart}
 import backend.messages._
+import backend.schema.Schema
 /**
   * Created by pzaytsev on 4/9/17.
   */
@@ -43,7 +45,7 @@ class Connector(cmId: String, connectorId: String, endpoint: Option[Endpoint]) e
 
   implicit val sys = context.system
   implicit val disp = context.dispatcher
-
+  private var currentSchema: Option[Schema] = None : Option[Schema]
   // should filter on datatype and return boolean
   // var filters: List[PartialFunction[Int, Boolean]] = ???
   // should be a schema expected against which to verify and for which to classify
@@ -58,6 +60,10 @@ class Connector(cmId: String, connectorId: String, endpoint: Option[Endpoint]) e
 
     case StreamRequestStart(`cmId`, `connectorId`) =>
       sender() ! ConnectorRegistered
+
+    case SaveSchema(schema_id, schema, cmId, connectorId) =>
+      currentSchema = Some(schema)
+      sender() ! SchemaSaved
 
     case StreamRequestStart(cmId, connectorId) =>
       log.warning("Ignoring request for {} {}. Connector is responsible for {} {}", cmId, connectorId, this.cmId, this.connectorId)
