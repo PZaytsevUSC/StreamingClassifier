@@ -3,6 +3,7 @@ package backend.messages
 import akka.actor.ActorRef
 import akka.stream.scaladsl.Tcp
 import akka.stream.scaladsl.Tcp.OutgoingConnection
+import backend.schema.Schema
 /**
   * Created by pzaytsev on 4/9/17.
   */
@@ -34,4 +35,5 @@ object ConnectorMsg {
 
   case class StreamRequestStart(cmId: String, connectorId: String) extends ConnectorMsg
   case object ConnectorRegistered extends ConnectorMsg
+  case class SaveSchema(schema_id: Long, schema: Schema, cmId: String, connectorId: Option[String]) extends ConnectorMsg
 }
