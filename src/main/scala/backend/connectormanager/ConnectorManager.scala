@@ -48,6 +48,8 @@ object ConnectorManager {
 }
 
 // Waiting -> Add Connector -> Build pipiline -> Monitor
+// need a singleton to work with config file..
+
 class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
 
   import CMMCommands._
@@ -57,7 +59,10 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
   implicit val materializer = ActorMaterializer
 
   private val port = sys.settings.config.getInt("connector_manager.port")
-  private val host = sys.settings.config.getInt("connector_manager.host")
+  private val host = sys.settings.config.getString("connector_manager.host")
+
+  val servers = sys.settings.config.getStringList("connector.servers.enabled")
+  val serverConfig = sys.settings.config.getConfig(s"connector.servers.${servers.iterator().next()}")
   private var connector_counter: Int = 0
   private var schemas: Map[Long, Schema] = Map.empty[Long, Schema]
   private var connectors: Map[String, ActorRef] = Map.empty[String, ActorRef]
@@ -128,12 +133,23 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
         case Some(connector) => connector forward streamReq
         case None =>
           log.info("Creating a connector for {}", streamReq.connectorId)
-          val connector = context.actorOf(props_connector(streamReq.cmId, streamReq.connectorId, None))
-          context.watch(connector)
-          connectors += streamReq.connectorId -> connector
-          connectors_backward += connector -> streamReq.connectorId
-          connector_counter = connectors.size
-          connector forward streamReq
+          if (servers.iterator().hasNext) {
+
+            val serverConfig = sys.settings.config.getConfig(s"connector.servers.${servers.iterator().next()}")
+            servers.remove(0)
+            val endpoint = Endpoint(serverConfig.getString("host"), serverConfig.getInt("port"))
+            val connector = context.actorOf(props_connector(streamReq.cmId, streamReq.connectorId, Some(endpoint)))
+            context.watch(connector)
+            connectors += streamReq.connectorId -> connector
+            connectors_backward += connector -> streamReq.connectorId
+            connector_counter = connectors.size
+            connector forward streamReq
+          }
+
+          else {
+            log.warning("All preconfigured connector-servers are taken")
+          }
+
       }
     }
     case saveSchema @ SaveSchema(_, _, `cmId`, _) => {

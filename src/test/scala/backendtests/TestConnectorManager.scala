@@ -10,11 +10,12 @@ import backend.messages.CMMsg.Initialize
 import backend.messages.ConnectorMsg.{ConnectorRegistered, SaveSchema, StreamRequestStart}
 import backend.schema.{Schema, StructField}
 import backend.types.{FloatType, IntType, StringType}
+import com.typesafe.config.ConfigFactory
 
 /**
   * Created by pzaytsev on 5/30/17.
   */
-class TestConnectorManager extends TestKit(ActorSystem("test_system")) with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll{
+class TestConnectorManager extends TestKit(ActorSystem("test_system", ConfigFactory.load("backend.conf"))) with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll{
 
   override  def afterAll: Unit = {
     TestKit.shutdownActorSystem(system)
