@@ -46,6 +46,7 @@ class Connector(cmId: String, connectorId: String, endpoint: Option[Endpoint]) e
   implicit val sys = context.system
   implicit val disp = context.dispatcher
   private var currentSchema: Option[Schema] = None : Option[Schema]
+  private val parent: ActorRef = context.parent
   // should filter on datatype and return boolean
   // var filters: List[PartialFunction[Int, Boolean]] = ???
   // should be a schema expected against which to verify and for which to classify

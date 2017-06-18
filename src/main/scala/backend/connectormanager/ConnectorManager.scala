@@ -1,8 +1,9 @@
 package backend.connectormanager
 
-import akka.actor.{Actor, ActorLogging, ActorRef, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
 import akka.event.Logging
 import akka.pattern.ask
+import akka.stream.ActorMaterializer
 import backend.connector.Connector
 import backend.connector.Connector.Endpoint
 import backend.connector.Connector.props_connector
@@ -13,6 +14,7 @@ import akka.stream.scaladsl.Tcp
 import akka.stream.scaladsl.Tcp.OutgoingConnection
 import backend.messages.ConnectorMsg.{SaveSchema, StreamRequestStart}
 import backend.schema.Schema
+import com.typesafe.config.ConfigFactory
 
 import scala.util
 import scala.collection.mutable.ListBuffer
@@ -37,6 +39,7 @@ object CMMCommands {
   case object ConnectorDoesNotExist extends CMMCommand
   case object SchemaInitialized extends CMMCommand
   case object SchemaSaved extends CMMCommand
+  case object UpdateEndpoints extends CMMCommand
 }
 
 
@@ -51,9 +54,14 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
   import context._
   implicit val sys = context.system
   implicit val disp = context.dispatcher
+  implicit val materializer = ActorMaterializer
+
+  private val port = sys.settings.config.getInt("connector_manager.port")
+  private val host = sys.settings.config.getInt("connector_manager.host")
   private var connector_counter: Int = 0
   private var schemas: Map[Long, Schema] = Map.empty[Long, Schema]
   private var connectors: Map[String, ActorRef] = Map.empty[String, ActorRef]
+  private var endpoints: Map[String, Endpoint] = Map.empty[String, Endpoint]
   private var connectors_backward: Map[ActorRef, String] = Map.empty[ActorRef, String]
   override def preStart(): Unit = log.info("ConnectorManager {} is up", cmId)
   override def postStop(): Unit = log.info("ConnectorManager {} is down", cmId)
@@ -146,6 +154,11 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
         }
 
       }
+    }
+
+    case UpdateEndpoints => {
+      for ((connectorId, actorRef) <- connectors) actorRef forward UpdateEndpoints
+
     }
 
     case StreamRequestStart(cmId, connectorId) =>
