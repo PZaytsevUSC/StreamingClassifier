@@ -21,9 +21,17 @@ trait CMMsg
 object CMMsg {
 
 
-  case class Create(host: String, port: Int) extends CMMsg
-  case class DestroyConnector(ref:ActorRef) extends CMMsg
+  case class Create(requestId: Long, host: String, port: Int) extends CMMsg
+  case class DestroyConnector(requestId: Long, ref:ActorRef) extends CMMsg
   case object Destroy extends CMMsg
   case object Initialize extends CMMsg
 
+}
+
+trait ConnectorMsg
+
+object ConnectorMsg {
+
+  case class StreamRequestStart(cmId: String, connectorId: String) extends ConnectorMsg
+  case object ConnectorRegistered extends ConnectorMsg
 }

@@ -1,5 +1,6 @@
 package backend.connectormanager
-import akka.actor.{Actor, ActorRef, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
+
+import akka.actor.{Actor, ActorLogging, ActorRef, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
 import akka.event.Logging
 import akka.pattern.ask
 import backend.connector.Connector
@@ -10,6 +11,7 @@ import backend.messages.CMMsg._
 import language.postfixOps
 import akka.stream.scaladsl.Tcp
 import akka.stream.scaladsl.Tcp.OutgoingConnection
+import backend.messages.ConnectorMsg.StreamRequestStart
 
 import scala.util
 import scala.collection.mutable.ListBuffer
@@ -34,21 +36,22 @@ object CMMCommands {
 
 
 object ConnectorManager {
-  def props_self(): Props = Props(new ConnectorManager)
+  def props_self(cmId: String): Props = Props(new ConnectorManager(cmId))
 }
 
 // Waiting -> Add Connector -> Build pipiline -> Monitor
-class ConnectorManager extends Actor with Stash{
+class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
 
   import CMMCommands._
   import context._
   implicit val sys = context.system
   implicit val disp = context.dispatcher
-  implicit val log = Logging(sys, this)
-
   var connector_counter: Int = 0
+  var connectors: Map[String, ActorRef] = Map.empty[String, ActorRef]
+  var connectors_backward: Map[ActorRef, String] = Map.empty[ActorRef, String]
 
-  var connectors: ListBuffer[ActorRef] = new ListBuffer[ActorRef]()
+  override def preStart(): Unit = log.info("ConnectorManager {} is up", cmId)
+  override def postStop(): Unit = log.info("ConnectorManager {} is down", cmId)
 
   // disable consecutive calls to prestart
   override def postRestart(reason: Throwable): Unit = ()
@@ -56,6 +59,10 @@ class ConnectorManager extends Actor with Stash{
   // prevent from stopping all the children -> should check a stash box on startup
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     postStop()
+  }
+
+  def suicide() = {
+    context.stop(self)
   }
 
   def start_watching_connectors() = {
@@ -78,8 +85,9 @@ class ConnectorManager extends Actor with Stash{
 
 
   def receive: Receive = {
-    case Initialize => become(connector_creator)
+    case Initialize => sender() ! "Initialized"; become(connector_creator)
     case Destroy => context.stop(self)
+    case _ => sender() ! "Non Initialized"
   }
 
   def connector_handler: Receive = {
@@ -101,22 +109,24 @@ class ConnectorManager extends Actor with Stash{
   }
 
   def connector_creator: Receive = {
-    case Create(host, port) => {
-      val endpoint: Endpoint = new Endpoint(host, port)
-      val connector = sys.actorOf(props_connector(endpoint), "connector" + connector_counter)
-      connector_counter += 1
-      connectors += connector
-      self ! ConnectTo(connector)
-      become(connector_handler)
-      // self ! ConnectTo(connector)
+
+    case streamReq @ StreamRequestStart(`cmId`, _) => {
+      connectors.get(streamReq.connectorId) match {
+        case Some(connector) => connector forward streamReq
+        case None =>
+          log.info("Creating a connector for {}", streamReq.connectorId)
+          val connector = context.actorOf(props_connector(streamReq.cmId, streamReq.connectorId, None))
+          context.watch(connector)
+          connectors += streamReq.connectorId -> connector
+          connectors_backward += connector -> streamReq.connectorId
+          connector_counter = connectors.size
+          connector forward streamReq
+      }
     }
 
+    case StreamRequestStart(cmId, connectorId) =>
+      log.warning("Ignoring request for {}. Connector is responsible for {}", cmId, this.cmId)
 
-
-    case DestroyConnector(ref: ActorRef) => {
-      val connector: ActorRef = connectors.find(x => x == ref).get
-      connector ! PoisonPill
-    }
   }
 
 

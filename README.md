@@ -1,8 +1,14 @@
 # StreamingClassifier
 
+[![Build Status](https://travis-ci.org/PZaytsevUSC/StreamingClassifier.svg?branch=master)](https://travis-ci.org/PZaytsevUSC/StreamingClassifier)
+
 ### Architecture:
 
 ![alt text](http://funkyimg.com/i/2tkyv.png "SC Architecture")
+
+### Supervision Hierarchy:
+
+![alt text](http://funkyimg.com/i/2tMPt.png "SC Supervision")
 
 ### Sketch:
 
@@ -19,6 +25,8 @@ V. Scalability options: Increase number of connectors to divide-and-conquer many
 VI. It’s important to address all the streaming issues that might arise (fast producer - slow consumer, back-pressure, non-blocking io, etc) as well as distributed issues (fault tolerance, persistence, recovery, self-healing, etc). 
 
 VII. User actions should be performed from a pretty one page UI. Several clients should be able to connect at the same time. The UI should support an active web socket connections, rudimentary analytics, user logging and all the goodies.
+
+VIII: Connect three closed graph shapes via their materialzed values (OutgoingConnection)
 
 ### Advanced:
 
