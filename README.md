@@ -28,6 +28,8 @@ VII. User actions should be performed from a pretty one page UI. Several clients
 
 VIII: Connect three closed graph shapes via their materialzed values (OutgoingConnection)
 
+IX: Advanced manipulation with flows should be included. Filtering, mapping, sampling, statistics aggregations.
+
 ### Advanced:
 
 Besides a subscription streaming, there should be an ability for streaming queries. Options: Apache Calcite, Spark DataFrames. 
