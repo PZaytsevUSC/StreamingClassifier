@@ -27,9 +27,9 @@ import scala.concurrent.duration._
 object CodecStage {
 
 
-  def apply(): BidiFlow[ConnectorDialect, ByteString, ByteString, ConnectorDialect, NotUsed] = {
+  def apply(): BidiFlow[ByteString, ConnectorDialect, ConnectorDialect, ByteString, NotUsed] = {
 
-    BidiFlow.fromFunctions(toBytes, fromBytes)
+    BidiFlow.fromFunctions(fromBytes, toBytes)
   }
 
   def toBytes(msg: ConnectorDialect): ByteString = {
@@ -59,9 +59,6 @@ object FramingStage {
     BidiShape.fromFlows(in, out)
   })
 }
-
-
-
 
 
 
