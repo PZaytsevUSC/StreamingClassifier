@@ -18,12 +18,9 @@ import scala.concurrent.duration._
   * Created by pzaytsev on 6/10/17.
   */
 
-trait Message
-case class Ping(id: Int) extends Message
-case class Pong(id: Int) extends Message
-
 
 // In general, when time or rate driven processing stages exhibit strange behavior, one of the first solutions to try should be to decrease the input buffer of the affected elements to 1.
+
 
 object bidiFlow extends App{
 

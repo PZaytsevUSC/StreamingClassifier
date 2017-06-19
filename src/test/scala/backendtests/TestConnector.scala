@@ -6,10 +6,11 @@ import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import backend.connector.Connector.props_connector
 import backend.messages.ConnectorMsg.{ConnectorRegistered, StreamRequestStart}
+import com.typesafe.config.ConfigFactory
 /**
   * Created by pzaytsev on 6/1/17.
   */
-class TestConnector extends TestKit(ActorSystem("test_system")) with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll{
+class TestConnector extends TestKit(ActorSystem("test_system", ConfigFactory.load("backend.conf"))) with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll{
 
   override  def afterAll: Unit = {
     TestKit.shutdownActorSystem(system)
