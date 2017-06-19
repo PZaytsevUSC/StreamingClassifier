@@ -53,7 +53,7 @@ object CodecStage {
 
 object FramingStage {
   def apply(): BidiFlow[ByteString, ByteString, ByteString, ByteString, NotUsed] = BidiFlow.fromGraph(GraphDSL.create() { b =>
-    val delimiter = ByteString("\n")
+    val delimiter = ByteString("***")
     val in = b.add(Framing.delimiter(delimiter, 256, allowTruncation = false))
     val out = b.add(Flow[ByteString].map(_ ++ delimiter))
     BidiShape.fromFlows(in, out)
