@@ -5,6 +5,9 @@ package backend.dialect
   */
 trait ConnectorDialect
 
+
+// should have data request for schema -> data response for schema
+
 object ConnectorDialect {
   trait ServerToClient extends ConnectorDialect
   trait ClientToServer extends ConnectorDialect

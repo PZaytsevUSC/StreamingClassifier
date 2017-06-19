@@ -10,6 +10,8 @@ import akka.stream.scaladsl.Tcp.OutgoingConnection
 import akka.stream.scaladsl.{Balance, BidiFlow, Broadcast, Flow, GraphDSL, Keep, Merge, RunnableGraph, Sink, Source, Tcp, ZipWith}
 import akka.stream.stage._
 import akka.util.ByteString
+import backend.dialect.ConnectorDialect
+import backend.dialect.ConnectorDialect.{Ping, Pong}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.FiniteDuration
@@ -22,6 +24,27 @@ import scala.concurrent.duration._
 // In general, when time or rate driven processing stages exhibit strange behavior, one of the first solutions to try should be to decrease the input buffer of the affected elements to 1.
 
 
+object CodecStage {
+
+
+  def toBytes(msg: ConnectorDialect): ByteString = {
+    implicit val order = ByteOrder.LITTLE_ENDIAN
+    msg match {
+      case Ping(id) => ByteString.newBuilder.putByte(1).putInt(id).result()
+      case Pong(id) => ByteString.newBuilder.putByte(2).putInt(id).result()
+    }
+  }
+
+  def fromBytes(msg: ByteString): ConnectorDialect = {
+    implicit val order = ByteOrder.LITTLE_ENDIAN
+    msg.iterator.getByte match {
+      case 1     => Ping(msg.iterator.getInt)
+      case 2     => Pong(msg.iterator.getInt)
+      case _ => throw new Exception("Parsing error") // should be handled in streaming way
+
+    }
+  }
+}
 
 object bidiFlow extends App{
 

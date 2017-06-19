@@ -155,6 +155,8 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
     case connectReq @ ConnectTo (`cmId`, _) =>
       endpoints.get(connectReq.connectorId) match {
         case Some(endpoint) =>
+          // forward this request and start building pipelines
+          // connector accepts request, start building pipelines from its side
           val connection: Flow[ByteString, ByteString, Future[OutgoingConnection]] = Tcp().outgoingConnection(endpoint.host, endpoint.port)
         case None => log.info("This connector endpoint: {} does not exist", connectReq.connectorId)
       }
