@@ -30,6 +30,8 @@ VIII: Connect three closed graph shapes via their materialzed values (OutgoingCo
 
 IX: Advanced manipulation with flows should be included. Filtering, mapping, sampling, statistics aggregations.
 
+X: Bayesian Nonparametric Models approach to streaming data
+
 ### Advanced:
 
 Besides a subscription streaming, there should be an ability for streaming queries. Options: Apache Calcite, Spark DataFrames. 
