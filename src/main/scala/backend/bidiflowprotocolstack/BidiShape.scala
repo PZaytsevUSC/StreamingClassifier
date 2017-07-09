@@ -61,15 +61,3 @@ object FramingStage {
   })
 }
 
-
-
-object bidiFlow extends App{
-
-  implicit val sys = ActorSystem("systemtest")
-  implicit val materializer = ActorMaterializer()
-
-
-
-}
-
-

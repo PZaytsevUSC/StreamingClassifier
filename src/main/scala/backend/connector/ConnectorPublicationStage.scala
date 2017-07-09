@@ -23,7 +23,7 @@ object ConnectorPublicationStage {
   def apply(): Flow[ConnectorDialect, ConnectorDialect, NotUsed] = Flow.fromGraph(new ConnectorPublicationStage())
 }
 
-class ConnectorPublicationStage extends GraphStage[FlowShape[ConnectorDialect, ConnectorDialect]] {
+private class ConnectorPublicationStage extends GraphStage[FlowShape[ConnectorDialect, ConnectorDialect]] {
 
   val in: Inlet[ConnectorDialect] = Inlet("Incoming")
   val out: Outlet[ConnectorDialect] = Outlet("Outgoing")

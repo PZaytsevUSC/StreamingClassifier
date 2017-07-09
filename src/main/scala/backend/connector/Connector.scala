@@ -62,7 +62,7 @@ class Connector(cmId: String, connectorId: String, endpoint: Option[Endpoint]) e
   // val source_type = ???
 
   // connect on startup just for now
-
+  // it is an async handler, should be fine within a main logic loop.
   private def startServer(host: String, port: Int) = {
     val host = "localhost"
     val port = 8881

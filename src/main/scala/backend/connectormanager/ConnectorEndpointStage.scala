@@ -1,6 +1,7 @@
 package backend.connectormanager
 
 import akka.actor.ActorRef
+import akka.stream.scaladsl.Flow
 import akka.stream.{Attributes, FlowShape, Inlet, Outlet}
 import akka.stream.stage._
 import akka.util.ByteString
@@ -18,7 +19,13 @@ import backend.dialect.ConnectorDialect
 
 // Some part of code should handle connector-bound pushing logic
 // Some part of code should handle delegator-bound pulling logic
-class ConnectorEndpointStage(cmRef: ActorRef) extends GraphStage[FlowShape[ConnectorDialect, ConnectorDialect]]{
+
+object ConnectorEndpointStage {
+  def apply(connectorManagerRef: ActorRef) = Flow.fromGraph(new ConnectorEndpointStage(connectorManagerRef))
+
+}
+
+private class ConnectorEndpointStage(cmRef: ActorRef) extends GraphStage[FlowShape[ConnectorDialect, ConnectorDialect]]{
 
   val in = Inlet[ConnectorDialect]("ClientBound")
   val out = Outlet[ConnectorDialect]("ConnectorBound")
