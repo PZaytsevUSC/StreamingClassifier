@@ -13,6 +13,7 @@ import language.postfixOps
 import akka.stream.scaladsl.{Flow, Source, Tcp}
 import akka.stream.scaladsl.Tcp.{IncomingConnection, OutgoingConnection, ServerBinding}
 import akka.util.ByteString
+import backend.bidiflowprotocolstack.{CodecStage, FramingStage}
 import backend.messages.ConnectorMsg.{SaveSchema, StreamRequestStart}
 import backend.schema.Schema
 import com.typesafe.config.ConfigFactory
@@ -157,6 +158,7 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
         case Some(endpoint) =>
           // forward this request and start building pipelines
           // connector accepts request, start building pipelines from its side
+          // val pipeline = FramingStage() atop CodecStage() join Flow[]
           val connection: Flow[ByteString, ByteString, Future[OutgoingConnection]] = Tcp().outgoingConnection(endpoint.host, endpoint.port)
         case None => log.info("This connector endpoint: {} does not exist", connectReq.connectorId)
       }

@@ -1,7 +1,8 @@
 package backend.connectormanager
 
-import akka.stream.{FlowShape, Inlet, Outlet}
-import akka.stream.stage.GraphStage
+import akka.actor.ActorRef
+import akka.stream.{Attributes, FlowShape, Inlet, Outlet}
+import akka.stream.stage._
 import akka.util.ByteString
 import backend.dialect.ConnectorDialect
 
@@ -14,13 +15,47 @@ import backend.dialect.ConnectorDialect
   * When materialized it should handle the logic of pulling or pushing in elements within
   * CMs JVM.
  */
-abstract class ConnectorEndpointStage() extends GraphStage[FlowShape[ConnectorDialect, ConnectorDialect]]{
+
+// Some part of code should handle connector-bound pushing logic
+// Some part of code should handle delegator-bound pulling logic
+class ConnectorEndpointStage(cmRef: ActorRef) extends GraphStage[FlowShape[ConnectorDialect, ConnectorDialect]]{
 
   val in = Inlet[ConnectorDialect]("ClientBound")
   val out = Outlet[ConnectorDialect]("ConnectorBound")
 
   override val shape: FlowShape[ConnectorDialect, ConnectorDialect] = FlowShape(in, out)
 
+
+
+  override def createLogic(inheritedAttributes: Attributes): GraphStageLogic = new GraphStageLogic(shape) with StageLogging {
+
+    lazy val self = getStageActor(onMessage)
+
+    override def preStart(): Unit = {
+      // pass its own reference to connectormanager, connectormanager will forward it to registry
+      // registry will forward to delegator
+      pull(in)
+    }
+
+    // if element on input port ready
+    setHandler(in, new InHandler {
+      override def onPush(): Unit = {
+        push(out, grab(in))
+      }
+    })
+
+    // if downstream is ready for new elements
+    setHandler(out, new OutHandler {
+      override def onPull(): Unit = {
+        pull(in)
+        // pull so far, when performing live linking should be a demand signal
+      }
+    })
+    // a mini actor that deals with linking live streams
+    private def onMessage(message: (ActorRef, Any)): Unit = message match {
+      case (_, el) => log.warning(s"Unexpected: $el")
+    }
+  }
 
 
 }
