@@ -12,7 +12,7 @@ import akka.testkit.TestKit
 import akka.util.ByteString
 import backend.bidiflowprotocolstack.{CodecStage, FramingStage}
 import backend.connector.ConnectorPublicationStage
-import backend.connectormanager.ConnectorEndpointStage
+import backend.connectormanager.{ConnectorEndpointStage, ConnectorManager}
 import backend.connectormanager.ConnectorManager.props_self
 import backend.dialect.ConnectorDialect
 import backend.dialect.ConnectorDialect.{Ping, Pong}
@@ -95,7 +95,7 @@ class TestProtocolStack extends TestKit(ActorSystem("test_system", ConfigFactory
       val source_concat: Source[ByteString, NotUsed] = Source(1 to 10)
         .map(x => ByteString.newBuilder.append(ByteString("p:" + x)).append(ByteString("***")).result())
         .reduce((x, y) => x ++ y)
-      val cm = system.actorOf(props_self("1"))
+      val cm = ConnectorManager.start("1")
       val pipeline = FramingStage() atop CodecStage() join ConnectorEndpointStage(cm)
       val probe: Probe[ByteString] = source_concat.via(pipeline).runWith(TestSink.probe[ByteString])
       val result = probe.request(10).expectNextN(10)
@@ -106,7 +106,7 @@ class TestProtocolStack extends TestKit(ActorSystem("test_system", ConfigFactory
       val source_concat: Source[ByteString, NotUsed] = Source(1 to 10)
         .map(x => ByteString.newBuilder.append(ByteString("p:" + x)).append(ByteString("***")).result())
         .reduce((x, y) => x ++ y)
-      val cm = system.actorOf(props_self("1"))
+      val cm = ConnectorManager.start("1")
       val pipeline = ConnectorPublicationStage() join (CodecStage().reversed atop FramingStage().reversed)
       val probe: Probe[ByteString] = source_concat.via(pipeline).runWith(TestSink.probe[ByteString])
       val result = probe.request(10).expectNextN(10)

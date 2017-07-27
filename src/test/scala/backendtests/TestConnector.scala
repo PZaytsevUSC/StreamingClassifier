@@ -19,7 +19,7 @@ class TestConnector extends TestKit(ActorSystem("test_system", ConfigFactory.loa
   "A Connector actor" must {
     "Respond with a connector registered message when registered with proper ids" in {
       val probe = TestProbe()
-      val connector = system.actorOf(props_connector("123", "456", None))
+      val connector = system.actorOf(props_connector("123", "456"))
       connector.tell(StreamRequestStart("123", "456"), probe.ref)
       val msg = probe.expectMsg(ConnectorRegistered)
       probe.lastSender should === (connector)
@@ -28,7 +28,7 @@ class TestConnector extends TestKit(ActorSystem("test_system", ConfigFactory.loa
 
     "Ignoring wrong registration messages when either cmId or connector id are wrong" in {
       val probe = TestProbe()
-      val connector = system.actorOf(props_connector("123", "456", None))
+      val connector = system.actorOf(props_connector("123", "456"))
       connector.tell(StreamRequestStart("wrongcmid", "456"), probe.ref)
       probe.expectNoMsg(500.milliseconds)
       connector.tell(StreamRequestStart("123", "wrongid"), probe.ref)

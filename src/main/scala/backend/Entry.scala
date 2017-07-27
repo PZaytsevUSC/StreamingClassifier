@@ -9,14 +9,8 @@ import scala.collection.JavaConverters._
   */
 object Entry extends App{
   implicit val sys = ActorSystem("backend", ConfigFactory.load("backend.conf"))
-  val servers:List[String] = sys.settings.config.getStringList("connector.servers.enabled").asScala.toList
 
-  val l = List() ++  servers map {id => sys.settings.config.getString(s"connector.servers.$id.host")}
-
-  println(servers)
-  println(l)
-
-  // ConnectorManager.start("1")
+  ConnectorManager.start("1")
 
 
 

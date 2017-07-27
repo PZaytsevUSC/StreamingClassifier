@@ -147,7 +147,7 @@ class ConnectorManager(cmId: String, endpoints: List[Endpoint]) extends Actor wi
           log.info("Creating a connector for {}", streamReq.connectorId)
 
             val endpoint = endpoints.head
-            val connector = context.actorOf(props_connector(streamReq.cmId, streamReq.connectorId, Some(endpoint)))
+            val connector = context.actorOf(props_connector(streamReq.cmId, streamReq.connectorId))
             context.watch(connector)
             connectors += streamReq.connectorId -> connector
             endpoints_map += streamReq.connectorId -> endpoint
