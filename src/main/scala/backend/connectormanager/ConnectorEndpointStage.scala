@@ -41,7 +41,6 @@ private class ConnectorEndpointStage(cmRef: ActorRef) extends GraphStage[FlowSha
     override def preStart(): Unit = {
       // pass its own reference to connectormanager, connectormanager will forward it to registry
       // registry will forward to delegator
-      pull(in)
     }
 
     // if element on input port ready

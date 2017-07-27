@@ -51,18 +51,6 @@ class Connector(cmId: String, connectorId: String, endpoint: Option[Endpoint]) e
   implicit val mat = ActorMaterializer()
   private var currentSchema: Option[Schema] = None : Option[Schema]
   private val parent: ActorRef = context.parent
-  // should filter on datatype and return boolean
-  // var filters: List[PartialFunction[Int, Boolean]] = ???
-  // should be a schema expected against which to verify and for which to classify
-  // var current_schema = ???
-  // a list of models to choose a streaming classification for
-  // it should consume a datashape and output a new datashape + a new classification
-  // var models: Map[String, PartialFunction[String, String]] = ???
-  // should affect the ingestion stage of a streaming logic. Cassandra -> Cassandra type ingestion, AMQP -> AMQP type, etc
-  // val source_type = ???
-
-  // connect on startup just for now
-  // it is an async handler, should be fine within a main logic loop.
   private def startServer(host: String, port: Int) = {
     val host = "localhost"
     val port = 8881
