@@ -35,16 +35,17 @@ object CodecStage {
   def toBytes(msg: ConnectorDialect): ByteString = {
     implicit val order = ByteOrder.LITTLE_ENDIAN
     msg match {
-      case Ping(id) => ByteString.newBuilder.putByte(1).putInt(id).result()
-      case Pong(id) => ByteString.newBuilder.putByte(2).putInt(id).result()
+      case Ping(id) => ByteString("p:" + id)
+      case Pong(id) => ByteString("o:" + id)
     }
   }
 
   def fromBytes(msg: ByteString): ConnectorDialect = {
     implicit val order = ByteOrder.LITTLE_ENDIAN
-    msg.iterator.getByte match {
-      case 1     => Ping(msg.iterator.getInt)
-      case 2     => Pong(msg.iterator.getInt)
+    val s = msg.utf8String.trim
+    s.charAt(0) match {
+      case 'p'     => Ping(s.substring(2).toInt)
+      case 'o'     => Pong(s.substring(2).toInt)
       case _ => throw new Exception("Parsing error") // should be handled in streaming way
 
     }
@@ -59,16 +60,4 @@ object FramingStage {
     BidiShape.fromFlows(in, out)
   })
 }
-
-
-
-object bidiFlow extends App{
-
-  implicit val sys = ActorSystem("systemtest")
-  implicit val materializer = ActorMaterializer()
-
-
-
-}
-
 

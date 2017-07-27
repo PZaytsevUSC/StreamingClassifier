@@ -13,6 +13,8 @@ import language.postfixOps
 import akka.stream.scaladsl.{Flow, Source, Tcp}
 import akka.stream.scaladsl.Tcp.{IncomingConnection, OutgoingConnection, ServerBinding}
 import akka.util.ByteString
+import backend.bidiflowprotocolstack.{CodecStage, FramingStage}
+import backend.connectormanager.StreamLinkApi.{CMStreamRef, ConnectorStreamRef}
 import backend.messages.ConnectorMsg.{SaveSchema, StreamRequestStart}
 import backend.schema.Schema
 import com.typesafe.config.ConfigFactory
@@ -20,6 +22,7 @@ import com.typesafe.config.ConfigFactory
 import scala.util
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
+import scala.util.{Failure, Success}
 /// Hierarchical structure
 
 /// Should initiate some set of connectors -> monitors connectors like it's children
@@ -49,9 +52,6 @@ object ConnectorManager {
   def props_self(cmId: String): Props = Props(new ConnectorManager(cmId))
 }
 
-// Waiting -> Add Connector -> Build pipiline -> Monitor
-// need a singleton to work with config file..
-
 class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
 
   import context.become
@@ -76,10 +76,8 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
   override def preStart(): Unit = log.info("ConnectorManager {} is up", cmId)
   override def postStop(): Unit = log.info("ConnectorManager {} is down", cmId)
 
-  // disable consecutive calls to prestart
   override def postRestart(reason: Throwable): Unit = ()
 
-  // prevent from stopping all the children -> should check a stash box on startup
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     postStop()
   }
@@ -113,15 +111,20 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
     case _ => sender() ! "Non Initialized"
   }
 
-  def connector_handler: Receive = {
 
-    case SuccessfullyConnected(connection: OutgoingConnection) => {
-      ///
-    }
+  def connectionFailed: Receive = {
+    case _ => unbecome()
+  }
 
-    case ConnectionFailed => {
+  def successfullyConnected: Receive = {
+    case ConnectorStreamRef(ref) =>
+      context.watch(ref)
+      // when this actor is created it should know the actor selection(path) of a registry
+      // so that when it receives ConnectorStreamRef
+      // it can distribute to registry
+      // and registry to current clients
+    // should be a terminate current connection case too.
 
-    }
   }
 
   def connector_creator: Receive = {
@@ -153,11 +156,20 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
     }
 
     case connectReq @ ConnectTo (`cmId`, _) =>
+
       endpoints.get(connectReq.connectorId) match {
         case Some(endpoint) =>
-          // forward this request and start building pipelines
-          // connector accepts request, start building pipelines from its side
-          val connection: Flow[ByteString, ByteString, Future[OutgoingConnection]] = Tcp().outgoingConnection(endpoint.host, endpoint.port)
+          val pipeline = FramingStage() atop CodecStage() join ConnectorEndpointStage(self)
+          // async handler to process request further.
+          // this thread stays and continues a main work.
+          Tcp().outgoingConnection(endpoint.host, endpoint.port) join pipeline run() onComplete{
+            case Success(s) =>
+              log.info("Successfully connected to {}:{}, handling asynchronously", endpoint.host, endpoint.port)
+              become(successfullyConnected)
+            case Failure(f) =>
+              log.warning("Failed to connect to {}:{}, retreating back to original behavior", endpoint.host, endpoint.port)
+              become(connectionFailed)
+          }
         case None => log.info("This connector endpoint: {} does not exist", connectReq.connectorId)
       }
 
