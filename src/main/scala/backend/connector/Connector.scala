@@ -29,7 +29,7 @@ object Connector {
   case class Endpoint(host: String, port: Int)
 
   // props should include ids and endpoint
-  def props_connector(cmId: String, connectorId: String, endpoint: Option[Endpoint]): Props = Props(new Connector(cmId, connectorId, endpoint))
+  def props_connector(cmId: String, connectorId: String): Props = Props(new Connector(cmId, connectorId))
 
 
   object Messages {
@@ -44,7 +44,7 @@ object Connector {
   }
 }
 
-class Connector(cmId: String, connectorId: String, endpoint: Option[Endpoint]) extends Actor with ActorLogging{
+class Connector(cmId: String, connectorId: String) extends Actor with ActorLogging{
 
   implicit val sys = context.system
   implicit val disp = context.dispatcher

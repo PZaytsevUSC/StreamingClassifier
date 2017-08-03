@@ -8,7 +8,7 @@ import backend.connector.Connector
 import backend.connector.Connector.Endpoint
 import backend.connector.Connector.props_connector
 import backend.messages.CMMsg._
-
+import scala.collection.JavaConverters._
 import language.postfixOps
 import akka.stream.scaladsl.{Flow, Source, Tcp}
 import akka.stream.scaladsl.Tcp.{IncomingConnection, OutgoingConnection, ServerBinding}
@@ -49,10 +49,21 @@ object CMMCommands {
 
 
 object ConnectorManager {
-  def props_self(cmId: String): Props = Props(new ConnectorManager(cmId))
-}
 
-class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
+  def start(cmId: String)(implicit sys: ActorSystem) = {
+    val cfg = sys.settings.config
+    val servers:List[String] = sys.settings.config.getStringList("connector.servers.enabled").asScala.toList
+    val endpoints = List() ++ servers map {id => Endpoint(sys.settings.config.getString(s"connector.servers.$id.host"),
+      sys.settings.config.getString(s"connector.servers.$id.port").toInt) }
+    sys.actorOf(props_self(cmId, endpoints))
+    }
+
+
+  def props_self(cmId: String, endpoints: List[Endpoint]): Props = Props(new ConnectorManager(cmId, endpoints))
+  }
+
+
+class ConnectorManager(cmId: String, endpoints: List[Endpoint]) extends Actor with Stash with ActorLogging{
 
   import context.become
   import context.unbecome
@@ -71,7 +82,7 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
   private var connector_counter: Int = 0
   private var schemas: Map[Long, Schema] = Map.empty[Long, Schema]
   private var connectors: Map[String, ActorRef] = Map.empty[String, ActorRef]
-  private var endpoints: Map[String, Endpoint] = Map.empty[String, Endpoint]
+  private var endpoints_map: Map[String, Endpoint] = Map.empty[String, Endpoint]
   private var connectors_backward: Map[ActorRef, String] = Map.empty[ActorRef, String]
   override def preStart(): Unit = log.info("ConnectorManager {} is up", cmId)
   override def postStop(): Unit = log.info("ConnectorManager {} is down", cmId)
@@ -134,30 +145,21 @@ class ConnectorManager(cmId: String) extends Actor with Stash with ActorLogging{
         case Some(connector) => connector forward streamReq
         case None =>
           log.info("Creating a connector for {}", streamReq.connectorId)
-          if (servers.iterator().hasNext) {
 
-            val serverConfig = sys.settings.config.getConfig(s"connector.servers.${servers.iterator().next()}")
-            servers.remove(0)
-            val endpoint = Endpoint(serverConfig.getString("host"), serverConfig.getInt("port"))
-            val connector = context.actorOf(props_connector(streamReq.cmId, streamReq.connectorId, Some(endpoint)))
+            val endpoint = endpoints.head
+            val connector = context.actorOf(props_connector(streamReq.cmId, streamReq.connectorId))
             context.watch(connector)
             connectors += streamReq.connectorId -> connector
-            endpoints += streamReq.connectorId -> endpoint
+            endpoints_map += streamReq.connectorId -> endpoint
             connectors_backward += connector -> streamReq.connectorId
             connector_counter = connectors.size
             connector forward streamReq
-          }
-
-          else {
-            log.warning("All preconfigured connector-servers are taken")
-          }
-
       }
     }
 
     case connectReq @ ConnectTo (`cmId`, _) =>
 
-      endpoints.get(connectReq.connectorId) match {
+      endpoints_map.get(connectReq.connectorId) match {
         case Some(endpoint) =>
           val pipeline = FramingStage() atop CodecStage() join ConnectorEndpointStage(self)
           // async handler to process request further.
