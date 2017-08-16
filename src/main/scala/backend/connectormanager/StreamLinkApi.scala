@@ -1,6 +1,7 @@
 package backend.connectormanager
 
 import akka.actor.ActorRef
+import backend.dialect.ConnectorDialect
 import backend.messages.ConnectorMsg
 
 /**
@@ -12,11 +13,11 @@ object StreamLinkApi {
 
   case class DelegatorStreamRef(ref: ActorRef)
 
-  case class CMStreamRef(ref: ActorRef)
+  case class CMStreamRef(ref: ActorRef, msg: ConnectorDialect)
 
   case class ConnectorStreamRef(ref: ActorRef)
 
   case class Demand(sender: ActorRef)
 
-  case class Payload(sender: ActorRef, msg: ConnectorMsg)
+  case class Payload(sender: ActorRef, msg: ConnectorDialect)
 }

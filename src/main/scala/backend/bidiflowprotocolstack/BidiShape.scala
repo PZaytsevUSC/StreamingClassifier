@@ -33,6 +33,7 @@ object CodecStage {
   }
 
   def toBytes(msg: ConnectorDialect): ByteString = {
+    println("called1")
     implicit val order = ByteOrder.LITTLE_ENDIAN
     msg match {
       case Ping(id) => ByteString("p:" + id)
@@ -41,6 +42,7 @@ object CodecStage {
   }
 
   def fromBytes(msg: ByteString): ConnectorDialect = {
+    println("called2")
     implicit val order = ByteOrder.LITTLE_ENDIAN
     val s = msg.utf8String.trim
     s.charAt(0) match {
@@ -56,7 +58,7 @@ object FramingStage {
   def apply(): BidiFlow[ByteString, ByteString, ByteString, ByteString, NotUsed] = BidiFlow.fromGraph(GraphDSL.create() { b =>
     val delimiter = ByteString("***")
     val in = b.add(Framing.delimiter(delimiter, 256, allowTruncation = false))
-    val out = b.add(Flow[ByteString].map(_ ++ delimiter))
+    val out =  b.add(Flow[ByteString].map(_ ++ delimiter))
     BidiShape.fromFlows(in, out)
   })
 }

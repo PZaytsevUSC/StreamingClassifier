@@ -3,6 +3,7 @@ package backendtests
 import scala.concurrent.duration._
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
+import backend.connectorendpointregistry.EndpointRegistry
 import backend.connectormanager.CMMCommands.{ConnectorDoesNotExist, SchemaSaved}
 import backend.connectormanager.ConnectorManager
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
@@ -26,7 +27,7 @@ class TestConnectorManager extends TestKit(ActorSystem("test_system", ConfigFact
   "A ConnectorManager actor" must {
     "Respond with non-initialized when in non-initialzed state" in {
       val probe = TestProbe()
-      val cm = ConnectorManager.start("1")
+      val cm = ConnectorManager.start("1", EndpointRegistry.selection)
       cm.tell("Some random message", probe.ref)
       val msg = probe.expectMsg("Non Initialized")
       msg should be ("Non Initialized")
@@ -34,7 +35,7 @@ class TestConnectorManager extends TestKit(ActorSystem("test_system", ConfigFact
 
     "Move to initialized state when initialized" in {
       val probe = TestProbe()
-      val cm = ConnectorManager.start("1")
+      val cm = ConnectorManager.start("1", EndpointRegistry.selection)
       cm.tell(Initialize, probe.ref)
       val msg = probe.expectMsg("Initialized")
       msg should be ("Initialized")
@@ -42,7 +43,7 @@ class TestConnectorManager extends TestKit(ActorSystem("test_system", ConfigFact
 
     "Register a connector" in {
       val probe = TestProbe()
-      val cm = ConnectorManager.start("1")
+      val cm = ConnectorManager.start("1", EndpointRegistry.selection)
       cm.tell(Initialize, probe.ref)
       probe.expectMsg("Initialized")
 
@@ -60,7 +61,7 @@ class TestConnectorManager extends TestKit(ActorSystem("test_system", ConfigFact
 
     "Ignore reqs for a wrong cmId" in {
       val probe = TestProbe()
-      val cm = ConnectorManager.start("1")
+      val cm = ConnectorManager.start("1", EndpointRegistry.selection)
       cm.tell(Initialize, probe.ref)
       probe.expectMsg("Initialized")
 
@@ -71,7 +72,7 @@ class TestConnectorManager extends TestKit(ActorSystem("test_system", ConfigFact
 
     "Return same actor for same ConnectorId" in {
       val probe = TestProbe()
-      val cm = ConnectorManager.start("1")
+      val cm = ConnectorManager.start("1", EndpointRegistry.selection)
       cm.tell(Initialize, probe.ref)
       probe.expectMsg("Initialized")
 
@@ -85,7 +86,7 @@ class TestConnectorManager extends TestKit(ActorSystem("test_system", ConfigFact
 
     "Save schema if ConnectorId is not provided" in {
       val probe = TestProbe()
-      val cm = ConnectorManager.start("1")
+      val cm = ConnectorManager.start("1", EndpointRegistry.selection)
       cm.tell(Initialize, probe.ref)
       probe.expectMsg("Initialized")
 
@@ -100,7 +101,7 @@ class TestConnectorManager extends TestKit(ActorSystem("test_system", ConfigFact
 
     "Save schema and forward the schema to a connector if ConnectorId is provided" in {
       val probe = TestProbe()
-      val cm = ConnectorManager.start("1")
+      val cm = ConnectorManager.start("1", EndpointRegistry.selection)
       cm.tell(Initialize, probe.ref)
       probe.expectMsg("Initialized")
 
@@ -117,7 +118,7 @@ class TestConnectorManager extends TestKit(ActorSystem("test_system", ConfigFact
 
     "Report that connectorId does not exist if ConnectorId is not found" in {
       val probe = TestProbe()
-      val cm = ConnectorManager.start("1")
+      val cm = ConnectorManager.start("1", EndpointRegistry.selection)
       cm.tell(Initialize, probe.ref)
       probe.expectMsg("Initialized")
       val schema = Schema(Array(

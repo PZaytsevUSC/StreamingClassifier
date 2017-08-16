@@ -1,6 +1,6 @@
 package backend.connectorendpointregistry
 
-import akka.actor.{Actor, ActorRef}
+import akka.actor.{Actor, ActorRef, ActorRefFactory, ActorSystem, Props}
 import backend.connectormanager.ConnectorEndpointStage
 import backend.connectormanager.StreamLinkApi.{CMStreamRef, ConnectorStreamRef}
 
@@ -14,20 +14,35 @@ import backend.connectormanager.StreamLinkApi.{CMStreamRef, ConnectorStreamRef}
   * Once the endpoint is registered it's location is broadcasted to other endpoints.
   * Each registry deals with one server - several clients combination
   */
+object EndpointRegistry {
+  private val id = "registry"
+  val path = "/user/registry"
+  def selection(implicit ctx: ActorRefFactory) = ctx.actorSelection(path)
+  def start()(implicit sys: ActorSystem) = sys.actorOf(Props[EndpointRegistry], id)
+}
 
-class ConnectorEndpointRegistry extends Actor {
+class EndpointRegistry extends Actor {
+
+  /**
+    * clients are DelegatorBoundStages
+    */
     private var clients: List[CMStreamRef] = List()
-    private var connector: Option[ActorRef] = None
+    private var connectorEndPointStageRef: Option[ActorRef] = None
 
   override def receive = {
+
+
     case m: CMStreamRef =>
       context.watch(m.ref)
       clients :+=  m
-      connector foreach (_ ! m)
+      println("added client")
+      connectorEndPointStageRef foreach (_ ! m)
 
     case ConnectorStreamRef(ref) =>
+      println("added servr")
       context.watch(ref)
-      connector = Some(ref)
+      connectorEndPointStageRef = Some(ref)
       clients foreach (ref ! _)
+    case _ => println("something other")
   }
 }

@@ -8,14 +8,18 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.stream.testkit.TestSubscriber.Probe
 import akka.stream.testkit.scaladsl.TestSink
-import akka.testkit.TestKit
+import akka.testkit.{TestKit, TestProbe}
 import akka.util.ByteString
 import backend.bidiflowprotocolstack.{CodecStage, FramingStage}
-import backend.connector.ConnectorPublicationStage
+import backend.connector.{Connector, ConnectorPublicationStage}
+import backend.connectorendpointregistry.EndpointRegistry
+import backend.connectormanager.CMMCommands.ConnectTo
 import backend.connectormanager.{ConnectorEndpointStage, ConnectorManager}
 import backend.connectormanager.ConnectorManager.props_self
 import backend.dialect.ConnectorDialect
 import backend.dialect.ConnectorDialect.{Ping, Pong}
+import backend.messages.CMMsg.Initialize
+import backend.messages.ConnectorMsg.StreamRequestStart
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{FlatSpec, Matchers, WordSpecLike}
 import sun.font.TrueTypeFont
@@ -91,27 +95,26 @@ class TestProtocolStack extends TestKit(ActorSystem("test_system", ConfigFactory
       assert(result.length == 10)
     }
 
-    "be stackable with ConnectorEndpointStage" in {
-      val source_concat: Source[ByteString, NotUsed] = Source(1 to 10)
-        .map(x => ByteString.newBuilder.append(ByteString("p:" + x)).append(ByteString("***")).result())
-        .reduce((x, y) => x ++ y)
-      val cm = ConnectorManager.start("1")
-      val pipeline = FramingStage() atop CodecStage() join ConnectorEndpointStage(cm)
-      val probe: Probe[ByteString] = source_concat.via(pipeline).runWith(TestSink.probe[ByteString])
-      val result = probe.request(10).expectNextN(10)
-      assert(result.length == 10)
-    }
 
     "be stackable with ConnectorPublicationStage" in {
       val source_concat: Source[ByteString, NotUsed] = Source(1 to 10)
         .map(x => ByteString.newBuilder.append(ByteString("p:" + x)).append(ByteString("***")).result())
         .reduce((x, y) => x ++ y)
-      val cm = ConnectorManager.start("1")
+      val cm = ConnectorManager.start("1", EndpointRegistry.selection)
       val pipeline = ConnectorPublicationStage() join (CodecStage().reversed atop FramingStage().reversed)
       val probe: Probe[ByteString] = source_concat.via(pipeline).runWith(TestSink.probe[ByteString])
       val result = probe.request(10).expectNextN(10)
       assert(result.length == 10)
 
+    }
+
+    "work in integration" in {
+      val con = Connector.start("1", "con1")
+      val probe = TestProbe()
+      val cm = ConnectorManager.start("1", EndpointRegistry.selection)
+      cm.tell(Initialize, probe.ref)
+      cm.tell(StreamRequestStart("1", "con1"), probe.ref)
+      cm ! ConnectTo("1", "con1")
     }
   }
 
