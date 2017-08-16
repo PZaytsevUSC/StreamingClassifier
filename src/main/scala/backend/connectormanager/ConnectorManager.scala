@@ -1,6 +1,6 @@
 package backend.connectormanager
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSelection, ActorSystem, FSM, IndirectActorProducer, PoisonPill, Props, Stash}
 import akka.event.Logging
 import akka.pattern.ask
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
@@ -8,12 +8,14 @@ import backend.connector.Connector
 import backend.connector.Connector.Endpoint
 import backend.connector.Connector.props_connector
 import backend.messages.CMMsg._
+
 import scala.collection.JavaConverters._
 import language.postfixOps
 import akka.stream.scaladsl.{Flow, Source, Tcp}
 import akka.stream.scaladsl.Tcp.{IncomingConnection, OutgoingConnection, ServerBinding}
 import akka.util.ByteString
 import backend.bidiflowprotocolstack.{CodecStage, FramingStage}
+import backend.connectorendpointregistry.EndpointRegistry
 import backend.connectormanager.StreamLinkApi.{CMStreamRef, ConnectorStreamRef}
 import backend.messages.ConnectorMsg.{SaveSchema, StreamRequestStart}
 import backend.schema.Schema
@@ -23,18 +25,6 @@ import scala.util
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
-/// Hierarchical structure
-
-/// Should initiate some set of connectors -> monitors connectors like it's children
-
-/// Gives underlying commands to start building and materializing flows
-
-/// Should know the failures and how to handle
-
-
-//// Dependency Injection
-
-/// Firstly local implementation that clustered implementation
 
 object CMMCommands {
   sealed trait CMMCommand
@@ -50,25 +40,27 @@ object CMMCommands {
 
 object ConnectorManager {
 
-  def start(cmId: String)(implicit sys: ActorSystem) = {
+  def start(cmId: String, registryRef: ActorSelection)(implicit sys: ActorSystem) = {
     val cfg = sys.settings.config
     val servers:List[String] = sys.settings.config.getStringList("connector.servers.enabled").asScala.toList
     val endpoints = List() ++ servers map {id => Endpoint(sys.settings.config.getString(s"connector.servers.$id.host"),
       sys.settings.config.getString(s"connector.servers.$id.port").toInt) }
-    sys.actorOf(props_self(cmId, endpoints))
+    sys.actorOf(props_self(cmId, endpoints, registryRef))
     }
 
 
-  def props_self(cmId: String, endpoints: List[Endpoint]): Props = Props(new ConnectorManager(cmId, endpoints))
+  def props_self(cmId: String, endpoints: List[Endpoint], registryRef: ActorSelection): Props = Props(new ConnectorManager(cmId, endpoints, registryRef))
   }
 
 
-class ConnectorManager(cmId: String, endpoints: List[Endpoint]) extends Actor with Stash with ActorLogging{
+class ConnectorManager(cmId: String, endpoints: List[Endpoint], registryRef: ActorSelection) extends Actor with Stash with ActorLogging{
 
   import context.become
   import context.unbecome
 
   import CMMCommands._
+
+
   implicit val sys = context.system
   implicit val disp = context.dispatcher
   implicit val materializer =
@@ -117,7 +109,7 @@ class ConnectorManager(cmId: String, endpoints: List[Endpoint]) extends Actor wi
 
 
   def receive: Receive = {
-    case Initialize => sender() ! "Initialized"; become(connector_creator)
+    case Initialize => log.info("{} connector manager initializing", cmId); sender() ! "Initialized"; become(connector_creator)
     case Destroy => context.stop(self)
     case _ => sender() ! "Non Initialized"
   }
@@ -129,7 +121,9 @@ class ConnectorManager(cmId: String, endpoints: List[Endpoint]) extends Actor wi
 
   def successfullyConnected: Receive = {
     case ConnectorStreamRef(ref) =>
+      println("CM got msg. forwarding to registry now")
       context.watch(ref)
+      registryRef ! ConnectorStreamRef(ref)
       // when this actor is created it should know the actor selection(path) of a registry
       // so that when it receives ConnectorStreamRef
       // it can distribute to registry
@@ -156,6 +150,18 @@ class ConnectorManager(cmId: String, endpoints: List[Endpoint]) extends Actor wi
             connector forward streamReq
       }
     }
+
+    case ConnectorStreamRef(ref) =>
+      println("CM got msg. forwarding to registry now")
+      context.watch(ref)
+      
+      registryRef ! ConnectorStreamRef(ref)
+    // when this actor is created it should know the actor selection(path) of a registry
+    // so that when it receives ConnectorStreamRef
+    // it can distribute to registry
+    // and registry to current clients
+    // should be a terminate current connection case too.
+
 
     case connectReq @ ConnectTo (`cmId`, _) =>
 

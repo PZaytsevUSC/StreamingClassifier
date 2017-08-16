@@ -5,8 +5,10 @@ import akka.stream.scaladsl.Flow
 import akka.stream.{Attributes, FlowShape, Inlet, Outlet}
 import akka.stream.stage._
 import akka.util.ByteString
+import backend.connectormanager.StreamLinkApi.{CMStreamRef, ConnectorStreamRef, Demand, Payload}
 import backend.dialect.ConnectorDialect
 
+import scala.collection.mutable
 /**
   * Created by pzaytsev on 6/19/17.
   */
@@ -25,6 +27,8 @@ object ConnectorEndpointStage {
 
 }
 
+case class NextElement(maybeRef: Option[ActorRef], element: ConnectorDialect)
+
 private class ConnectorEndpointStage(cmRef: ActorRef) extends GraphStage[FlowShape[ConnectorDialect, ConnectorDialect]]{
 
   val in = Inlet[ConnectorDialect]("ClientBound")
@@ -37,29 +41,53 @@ private class ConnectorEndpointStage(cmRef: ActorRef) extends GraphStage[FlowSha
   override def createLogic(inheritedAttributes: Attributes): GraphStageLogic = new GraphStageLogic(shape) with StageLogging {
 
     lazy val self = getStageActor(onMessage)
+    var queue: mutable.Queue[NextElement] = mutable.Queue()
 
     override def preStart(): Unit = {
-      // pass its own reference to connectormanager, connectormanager will forward it to registry
-      // registry will forward to delegator
+      cmRef ! ConnectorStreamRef(self.ref)
+
     }
 
     // if element on input port ready
     setHandler(in, new InHandler {
       override def onPush(): Unit = {
-        push(out, grab(in))
+        pull(in)
       }
     })
 
     // if downstream is ready for new elements
     setHandler(out, new OutHandler {
       override def onPull(): Unit = {
-        pull(in)
+        pushToConnector()
         // pull so far, when performing live linking should be a demand signal
       }
     })
     // a mini actor that deals with linking live streams
     private def onMessage(message: (ActorRef, Any)): Unit = message match {
-      case (_, el) => log.warning(s"Unexpected: $el")
+      case (_, Payload(ref, msg)) =>
+        println("hit stage endpoint")
+        queue = queue :+ NextElement(Some(ref), msg)
+        pushToConnector()
+        ref ! Demand(self.ref)
+      case (_, CMStreamRef(ref, msg)) =>
+        println("CES found where client is")
+        ref ! Demand(self.ref)
+      case _ => println("CES got something else")
+
+    }
+
+
+    private def pushToConnector() = {
+
+      if(isAvailable(out) && queue.nonEmpty){
+        queue.dequeue() match {
+          case (NextElement(ref, elem)) => {
+            push(out, elem)
+            ref foreach(_ ! Demand(self.ref))
+          }
+        }
+      }
+
     }
   }
 

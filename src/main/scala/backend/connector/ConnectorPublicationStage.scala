@@ -1,6 +1,7 @@
 package backend.connector
 
 import akka.NotUsed
+import akka.actor.ActorRef
 import akka.stream.scaladsl.Flow
 import akka.stream.{Attributes, FlowShape, Inlet, Outlet}
 import akka.stream.stage.{GraphStage, GraphStageLogic, InHandler, OutHandler}
@@ -23,6 +24,8 @@ object ConnectorPublicationStage {
   def apply(): Flow[ConnectorDialect, ConnectorDialect, NotUsed] = Flow.fromGraph(new ConnectorPublicationStage())
 }
 
+case class NextElement(maybeRef: Option[ActorRef], element: ConnectorDialect)
+
 private class ConnectorPublicationStage extends GraphStage[FlowShape[ConnectorDialect, ConnectorDialect]] {
 
   val in: Inlet[ConnectorDialect] = Inlet("Incoming")
@@ -36,7 +39,9 @@ private class ConnectorPublicationStage extends GraphStage[FlowShape[ConnectorDi
     // Come up with a subscription mechanism for this end.
     // There should be an async boundary between publishing and accessing data from sources.
 
+
     setHandler(in, new InHandler {
+      println("Reached in")
       override def onPush() = grab(in) match {
         case Ping(id) => push(out, Pong(id))
       }
@@ -44,6 +49,7 @@ private class ConnectorPublicationStage extends GraphStage[FlowShape[ConnectorDi
 
 
     setHandler(out, new OutHandler {
+      println("Reached out")
       override def onPull() = pull(in)
     })
   }
